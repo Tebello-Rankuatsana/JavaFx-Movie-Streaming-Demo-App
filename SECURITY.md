@@ -1,6 +1,6 @@
 # Security Policy
 
-This document explains how we handle security for the **B/DIIM3110 – Interactive
+This document explains how we handle security for the **Interactive
 Multimedia Group Assignment** (Movie Streaming Demo App). Although this is a student
 project and not a production service, we still follow basic security practices and ask
 contributors to do the same.
