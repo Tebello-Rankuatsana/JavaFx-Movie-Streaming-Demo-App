@@ -1,6 +1,6 @@
 # Contributing to the Movie Streaming Demo App
 
-Thanks for contributing to our **B/DIIM3110 – Interactive Multimedia Group Assignment**.
+Thanks for contributing to our **Interactive Multimedia Group Assignment**.
 This document explains how we work together, what the assignment rules are, and how to
 get your changes merged without breaking the build.
 
