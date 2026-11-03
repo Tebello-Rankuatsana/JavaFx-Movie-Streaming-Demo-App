@@ -1,0 +1,482 @@
+/* ==========================================================================
+   StreamFlix - Premium Streaming Platform Stylesheet
+   Theme: Black, Midnight Blue, Rich Gold
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Root & Global
+   -------------------------------------------------------------------------- */
+.root {
+    -fx-background-color: #000000;
+    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+.root-pane, .screen, .content-area {
+    -fx-background-color: #000000;
+}
+
+/* --------------------------------------------------------------------------
+   Scroll Pane & Scroll Bars
+   -------------------------------------------------------------------------- */
+.scroll-pane {
+    -fx-background: #000000;
+    -fx-background-color: #000000;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: #000000;
+}
+
+.scroll-pane > .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 0;
+}
+
+.scroll-pane > .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+    -fx-pref-height: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Sidebar
+   -------------------------------------------------------------------------- */
+.sidebar {
+    -fx-background-color: #14213D;
+    -fx-border-color: transparent #000000 transparent transparent;
+    -fx-border-width: 0 1 0 0;
+}
+
+.logo-text {
+    -fx-font-size: 26px;
+    -fx-font-weight: 900;
+    -fx-fill: #FCA311;
+    -fx-letter-spacing: 2px;
+}
+
+.toggle-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #E5E5E5;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-padding: 0 5 0 5;
+}
+
+.toggle-button:hover {
+    -fx-text-fill: #FCA311;
+}
+
+/* --------------------------------------------------------------------------
+   Navigation Buttons
+   -------------------------------------------------------------------------- */
+.nav-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 8;
+    -fx-text-fill: #E5E5E5;
+    -fx-font-size: 15px;
+    -fx-font-weight: 600;
+    -fx-padding: 10 20 10 20;
+    -fx-cursor: hand;
+}
+
+.nav-button:hover {
+    -fx-text-fill: #FFFFFF;
+    -fx-background-color: rgba(252, 163, 17, 0.1);
+}
+
+.nav-button-active {
+    -fx-background-color: #FCA311;
+    -fx-background-radius: 8;
+    -fx-text-fill: #000000;
+    -fx-font-size: 15px;
+    -fx-font-weight: 800;
+    -fx-padding: 10 20 10 20;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(252,163,17,0.4), 10, 0, 0, 0);
+}
+
+.nav-button-active:hover {
+    -fx-background-color: #FFB733;
+}
+
+/* --------------------------------------------------------------------------
+   User Profile
+   -------------------------------------------------------------------------- */
+.user-box {
+    -fx-background-color: rgba(255, 255, 255, 0.05);
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+}
+
+.user-box:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+}
+
+.user-name {
+    -fx-font-size: 14px;
+    -fx-font-weight: 600;
+    -fx-fill: #FFFFFF;
+}
+
+/* --------------------------------------------------------------------------
+   Search Bar & Top Bar
+   -------------------------------------------------------------------------- */
+.search-box {
+    -fx-background-color: #1A1A1A;
+    -fx-background-radius: 20;
+    -fx-padding: 8 20 8 20;
+    -fx-border-color: rgba(255, 255, 255, 0.1);
+    -fx-border-radius: 20;
+    -fx-border-width: 1;
+}
+
+.search-box:focused-within {
+    -fx-border-color: #FCA311;
+}
+
+.search-icon {
+    -fx-fill: #E5E5E5;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.search-field {
+    -fx-background-color: transparent;
+    -fx-text-fill: #FFFFFF;
+    -fx-prompt-text-fill: #E5E5E5;
+    -fx-font-size: 14px;
+    -fx-highlight-fill: #FCA311;
+    -fx-highlight-text-fill: #000000;
+}
+
+.search-field:focused {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.notification-button {
+    -fx-background-color: #1A1A1A;
+    -fx-text-fill: #E5E5E5;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 50;
+    -fx-min-width: 40;
+    -fx-min-height: 40;
+    -fx-cursor: hand;
+}
+
+.notification-button:hover {
+    -fx-background-color: #FCA311;
+    -fx-text-fill: #000000;
+}
+
+/* --------------------------------------------------------------------------
+   Hero Section
+   -------------------------------------------------------------------------- */
+.hero {
+    -fx-background-color: #000000;
+    -fx-min-height: 450px;
+    -fx-max-height: 600px;
+}
+
+.hero-title {
+    -fx-font-size: 64px;
+    -fx-font-weight: 900;
+    -fx-fill: #FFFFFF;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.9), 15, 0, 0, 5);
+}
+
+.hero-meta {
+    -fx-fill: #E5E5E5;
+    -fx-font-size: 16px;
+    -fx-font-weight: 600;
+}
+
+.hero-description {
+    -fx-fill: #D1D5DB;
+    -fx-font-size: 17px;
+    -fx-line-spacing: 6;
+}
+
+/* --------------------------------------------------------------------------
+   Badges
+   -------------------------------------------------------------------------- */
+.badge-gold {
+    -fx-background-color: #FCA311;
+    -fx-text-fill: #000000;
+    -fx-font-weight: 900;
+    -fx-font-size: 11px;
+    -fx-padding: 5 12 5 12;
+    -fx-background-radius: 4;
+}
+
+.badge-outline {
+    -fx-background-color: transparent;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-weight: 900;
+    -fx-font-size: 11px;
+    -fx-padding: 5 12 5 12;
+    -fx-background-radius: 4;
+    -fx-border-color: #FFFFFF;
+    -fx-border-radius: 4;
+    -fx-border-width: 1;
+}
+
+/* --------------------------------------------------------------------------
+   Typography & Titles
+   -------------------------------------------------------------------------- */
+.section-title {
+    -fx-font-size: 26px;
+    -fx-font-weight: 800;
+    -fx-fill: #FFFFFF;
+}
+
+.screen-title {
+    -fx-font-size: 36px;
+    -fx-font-weight: 900;
+    -fx-fill: #FFFFFF;
+}
+
+.view-all-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #FCA311;
+    -fx-font-size: 14px;
+    -fx-font-weight: 700;
+    -fx-cursor: hand;
+}
+
+.view-all-button:hover {
+    -fx-text-fill: #FFB733;
+    -fx-underline: true;
+}
+
+/* --------------------------------------------------------------------------
+   Movie Cards
+   -------------------------------------------------------------------------- */
+.movie-card {
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+}
+
+.movie-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: 700;
+    -fx-fill: #FFFFFF;
+}
+
+.movie-genre {
+    -fx-font-size: 13px;
+    -fx-fill: #E5E5E5;
+}
+
+.rating-badge {
+    -fx-background-color: rgba(0, 0, 0, 0.85);
+    -fx-text-fill: #FCA311;
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+    -fx-padding: 4 8 4 8;
+    -fx-background-radius: 4;
+    -fx-border-color: rgba(252, 163, 17, 0.4);
+    -fx-border-radius: 4;
+}
+
+.play-overlay {
+    -fx-background-color: rgba(0, 0, 0, 0.5);
+    -fx-background-radius: 20;
+}
+
+.play-icon {
+    -fx-font-size: 18px;
+    -fx-font-weight: 900;
+    -fx-fill: #FFFFFF;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.9), 5, 0, 0, 2);
+}
+
+/* --------------------------------------------------------------------------
+   Buttons
+   -------------------------------------------------------------------------- */
+.primary-button {
+    -fx-background-color: #FCA311;
+    -fx-background-radius: 8;
+    -fx-text-fill: #000000;
+    -fx-font-size: 16px;
+    -fx-font-weight: 800;
+    -fx-cursor: hand;
+}
+
+.primary-button-hover {
+    -fx-background-color: #FFB733;
+}
+
+.secondary-button {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+    -fx-border-color: rgba(255, 255, 255, 0.2);
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-border-width: 1;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 16px;
+    -fx-font-weight: 700;
+    -fx-cursor: hand;
+}
+
+.secondary-button-hover {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+    -fx-border-color: #FCA311;
+}
+
+/* --------------------------------------------------------------------------
+   Movie Details Screen
+   -------------------------------------------------------------------------- */
+.detail-title {
+    -fx-font-size: 52px;
+    -fx-font-weight: 900;
+    -fx-fill: #FFFFFF;
+}
+
+.detail-genre {
+    -fx-fill: #FCA311;
+    -fx-font-size: 16px;
+    -fx-font-weight: 700;
+}
+
+.detail-meta {
+    -fx-fill: #E5E5E5;
+    -fx-font-size: 16px;
+    -fx-font-weight: 600;
+}
+
+.detail-synopsis {
+    -fx-fill: #D1D5DB;
+    -fx-font-size: 17px;
+    -fx-line-spacing: 6;
+}
+
+/* --------------------------------------------------------------------------
+   Watchlist Screen
+   -------------------------------------------------------------------------- */
+.watchlist-row {
+    -fx-background-color: #14213D;
+    -fx-background-radius: 12;
+    -fx-border-color: rgba(255, 255, 255, 0.05);
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+}
+
+.watchlist-row:hover {
+    -fx-background-color: #1E335E;
+    -fx-border-color: rgba(252, 163, 17, 0.4);
+}
+
+.watchlist-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: 700;
+    -fx-fill: #FFFFFF;
+}
+
+.watchlist-genre {
+    -fx-font-size: 14px;
+    -fx-fill: #E5E5E5;
+}
+
+.empty-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: 700;
+    -fx-fill: #FFFFFF;
+}
+
+.empty-subtitle {
+    -fx-font-size: 15px;
+    -fx-fill: #E5E5E5;
+}
+
+.remove-button {
+    -fx-background-color: rgba(255, 50, 50, 0.15);
+    -fx-text-fill: #FF4444;
+    -fx-font-size: 14px;
+    -fx-font-weight: 700;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+
+.remove-button:hover {
+    -fx-background-color: #FF4444;
+    -fx-text-fill: #FFFFFF;
+}
+
+/* --------------------------------------------------------------------------
+   Categories Screen
+   -------------------------------------------------------------------------- */
+.category-card {
+    -fx-background-color: #14213D;
+    -fx-background-radius: 15;
+    -fx-cursor: hand;
+    -fx-border-color: rgba(255, 255, 255, 0.05);
+    -fx-border-radius: 15;
+    -fx-border-width: 1;
+}
+
+.category-card-hover {
+    -fx-background-color: #FCA311;
+    -fx-border-color: #FCA311;
+}
+
+.category-name {
+    -fx-font-size: 20px;
+    -fx-font-weight: 800;
+    -fx-fill: #FFFFFF;
+}
+
+/* --------------------------------------------------------------------------
+   Settings Screen
+   -------------------------------------------------------------------------- */
+.setting-item {
+    -fx-background-color: #14213D;
+    -fx-background-radius: 12;
+    -fx-cursor: hand;
+    -fx-border-color: rgba(255, 255, 255, 0.05);
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+}
+
+.setting-item-hover {
+    -fx-background-color: #1E335E;
+    -fx-border-color: rgba(252, 163, 17, 0.5);
+}
+
+.setting-title {
+    -fx-font-size: 17px;
+    -fx-font-weight: 700;
+    -fx-fill: #FFFFFF;
+}
+
+.setting-subtitle {
+    -fx-font-size: 14px;
+    -fx-fill: #E5E5E5;
+}
+
+.setting-arrow {
+    -fx-font-size: 18px;
+    -fx-fill: #FCA311;
+    -fx-font-weight: 900;
+}
+
+/* --------------------------------------------------------------------------
+   Media Player Controls
+   -------------------------------------------------------------------------- */
+.slider .track {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+    -fx-background-radius: 5;
+}
+
+.slider .thumb {
+    -fx-background-color: #FCA311;
+    -fx-background-radius: 50;
+    -fx-effect: dropshadow(gaussian, rgba(252,163,17,0.5), 5, 0, 0, 0);
+}
+
+.slider .thumb:hover {
+    -fx-background-color: #FFB733;
+}
