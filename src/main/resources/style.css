@@ -35,8 +35,21 @@
 }
 
 .scroll-pane > .scroll-bar:horizontal {
-    -fx-background-color: transparent;
-    -fx-pref-height: 0;
+    -fx-background-color: rgba(19, 46, 67, 0.55);
+    -fx-background-radius: 4;
+    -fx-pref-height: 6;
+    -fx-padding: 1 0 1 0;
+}
+
+.scroll-pane > .scroll-bar:horizontal > .thumb {
+    -fx-background-color: linear-gradient(to right, #FCA311, #FFB733);
+    -fx-background-radius: 4;
+}
+
+.scroll-pane > .scroll-bar:horizontal > .increment-button,
+.scroll-pane > .scroll-bar:horizontal > .decrement-button {
+    -fx-padding: 0;
+    -fx-pref-width: 0;
 }
 
 /* --------------------------------------------------------------------------
@@ -231,6 +244,7 @@
     -fx-font-size: 26px;
     -fx-font-weight: 800;
     -fx-fill: #FFFFFF;
+    -fx-effect: dropshadow(gaussian, rgba(252, 163, 17, 0.2), 12, 0, 0, 0);
 }
 
 .screen-title {
@@ -260,6 +274,20 @@
     -fx-cursor: hand;
 }
 
+.poster-frame {
+    -fx-background-color: linear-gradient(to bottom right, #1E335E, #0B1424);
+    -fx-background-radius: 16;
+    -fx-border-color: rgba(252, 163, 17, 0.24);
+    -fx-border-radius: 16;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.55), 16, 0.25, 0, 7);
+}
+
+.movie-card:hover .poster-frame {
+    -fx-border-color: rgba(252, 163, 17, 0.9);
+    -fx-effect: dropshadow(gaussian, rgba(252, 163, 17, 0.34), 22, 0.25, 0, 0);
+}
+
 .movie-title {
     -fx-font-size: 16px;
     -fx-font-weight: 700;
@@ -283,8 +311,8 @@
 }
 
 .play-overlay {
-    -fx-background-color: rgba(0, 0, 0, 0.5);
-    -fx-background-radius: 20;
+    -fx-background-color: linear-gradient(to bottom, rgba(2, 12, 23, 0.05), rgba(0, 12, 22, 0.55));
+    -fx-background-radius: 16;
 }
 
 .play-icon {

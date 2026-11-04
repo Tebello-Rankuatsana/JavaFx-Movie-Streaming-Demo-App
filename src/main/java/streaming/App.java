@@ -91,36 +91,48 @@ public class App extends Application {
     }
 
     private void initData() {
-        allMovies.add(new Movie("Jungle Cruise", "Adventure, Fantasy", "2h 15m", "PG-13",
-                "Dr. Lily Houghton enlists the aid of wisecracking skipper Frank Wolff to take her down the Amazon in his ramshackle boat.",
-                "https://picsum.photos/seed/jungle/400/600", 8.7));
-        allMovies.add(new Movie("Mortal Kombat 2", "Action, Fantasy", "1h 52m", "R",
-                "The fate of the universe is at stake as Earthrealm's champions prepare for the ultimate tournament.",
-                "https://picsum.photos/seed/mortal/400/600", 7.9));
-        allMovies.add(new Movie("The Last Duel", "Drama, History", "2h 05m", "R",
-                "A tale of betrayal and vengeance set against the brutality of 14th century France.",
-                "https://picsum.photos/seed/duel/400/600", 8.2));
-        allMovies.add(new Movie("Dune: Part Two", "Sci-Fi, Epic", "2h 45m", "PG-13",
-                "Paul Atreides unites with Chani and the Fremen while seeking revenge against the conspirators who destroyed his family.",
-                "https://picsum.photos/seed/dune/400/600", 9.1));
-        allMovies.add(new Movie("Oppenheimer", "Biography, Drama", "3h 00m", "R",
-                "The story of American scientist J. Robert Oppenheimer and his role in the development of the atomic bomb.",
-                "https://picsum.photos/seed/oppenheimer/400/600", 8.9));
-        allMovies.add(new Movie("The Batman", "Action, Crime", "2h 56m", "PG-13",
-                "When a sadistic serial killer begins murdering key political figures in Gotham, Batman is forced to investigate.",
-                "https://picsum.photos/seed/batman/400/600", 8.5));
-        allMovies.add(new Movie("Interstellar", "Sci-Fi, Adventure", "2h 49m", "PG-13",
-                "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival.",
-                "https://picsum.photos/seed/interstellar/400/600", 9.3));
-        allMovies.add(new Movie("Gladiator II", "Action, Drama", "2h 20m", "R",
-                "Years after witnessing the death of the revered hero Maximus, Lucius is forced to enter the Colosseum.",
-                "https://picsum.photos/seed/gladiator/400/600", 8.1));
+        addMovie("The Dark Knight", "Action", "/images/Actions/The dark night.jpg");
+        addMovie("The Beekeeper", "Action", "/images/Actions/The Beekeeper.jpg");
+        addMovie("John Wick 4", "Action", "/images/Actions/John Wick 4.jpg");
+        addMovie("Inception", "Action", "/images/Actions/inception.jpg");
+        addMovie("Hitman", "Action", "/images/Actions/hitman.jpg");
+        addMovie("Hell or High Water", "Action", "/images/Actions/Hell or High Water.jpg");
+        addMovie("Extraction", "Action", "/images/Actions/Extraction.jpg");
+        addMovie("Central Intelligence", "Action", "/images/Actions/Central Intelligence.jpg");
 
-        trendingMovies.addAll(allMovies.subList(0, 5));
-        popularMovies.addAll(allMovies.subList(2, 7));
-        recentlyAdded.addAll(allMovies.subList(3, 8));
-        watchlist.add(allMovies.get(1));
-        watchlist.add(allMovies.get(4));
+        addMovie("Uncharted", "Adventure", "/images/Adventure/uncharted.jpg");
+        addMovie("Trazen", "Adventure", "/images/Adventure/trazen.jpg");
+        addMovie("The Tomorrow War", "Adventure", "/images/Adventure/The Tomorrow War.jpg");
+        addMovie("Shang-Chi and the Legend of the Ten Rings", "Adventure", "/images/Adventure/SHANG-CHI AND THE LEGEND OF THE TEN RINGS.jpg");
+        addMovie("Mission: Impossible", "Adventure", "/images/Adventure/mission impossible.jpg");
+        addMovie("Jurassic Park", "Adventure", "/images/Adventure/jurassic park.jpg");
+        addMovie("Jumanji", "Adventure", "/images/Adventure/jumanji.jpg");
+        addMovie("Dawn of the Planet of the Apes", "Adventure", "/images/Adventure/Dawn of the planet of apes.jpg");
+
+        addMovie("Tron: Ares", "Sci-Fi", "/images/Sci-fi/Tron Ares.jpg");
+        addMovie("The Maze Runner: The Death Cure", "Sci-Fi", "/images/Sci-fi/The Maze Runner 3 The Death Cure.jpg");
+        addMovie("Tenet", "Sci-Fi", "/images/Sci-fi/Tenet.jpg");
+        addMovie("RoboCop", "Sci-Fi", "/images/Sci-fi/Robocop.jpg");
+        addMovie("Pacific Rim", "Sci-Fi", "/images/Sci-fi/pacific rim.jpg");
+        addMovie("Oblivion", "Sci-Fi", "/images/Sci-fi/oblivion.jpg");
+        addMovie("Elysium", "Sci-Fi", "/images/Sci-fi/Movie Elysium.jpg");
+        addMovie("Avengers: Endgame", "Sci-Fi", "/images/Sci-fi/avengers endgame.jpg");
+
+        trendingMovies.addAll(categoryMovies("Action"));
+        popularMovies.addAll(categoryMovies("Adventure"));
+        recentlyAdded.addAll(categoryMovies("Sci-Fi"));
+    }
+
+    private void addMovie(String title, String genre, String imagePath) {
+        allMovies.add(new Movie(title, genre, "Feature", "PG-13", "", imagePath, 8.0));
+    }
+
+    private List<Movie> categoryMovies(String category) {
+        List<Movie> movies = new ArrayList<>();
+        for (Movie movie : allMovies) {
+            if (movie.genre.equals(category)) movies.add(movie);
+        }
+        return movies;
     }
 
     private void buildUI(Stage stage) {
@@ -311,9 +323,9 @@ public class App extends Application {
         contentBox.getChildren().add(createHeroSection());
         contentBox.getChildren().add(createCategoriesPillRow());
 
-        VBox trendingRow = createMovieRow("Trending Now", trendingMovies);
-        VBox popularRow = createMovieRow("Popular Movies", popularMovies);
-        VBox recentlyRow = createMovieRow("Recently Added", recentlyAdded);
+        VBox trendingRow = createMovieRow("Action", trendingMovies);
+        VBox popularRow = createMovieRow("Adventure", popularMovies);
+        VBox recentlyRow = createMovieRow("Sci-Fi", recentlyAdded);
 
         contentBox.getChildren().addAll(trendingRow, popularRow, recentlyRow);
         VBox.setMargin(recentlyRow, new Insets(0, 0, 60, 0));
@@ -328,7 +340,7 @@ public class App extends Application {
         hero.setMinHeight(450);
         hero.setMaxHeight(520);
 
-        ImageView heroImage = new ImageView(new Image("https://picsum.photos/seed/jungle-hero/1600/800", true));
+        ImageView heroImage = new ImageView(loadPoster(allMovies.get(0).imageUrl));
         heroImage.setPreserveRatio(false);
         heroImage.fitWidthProperty().bind(hero.widthProperty());
         heroImage.fitHeightProperty().bind(hero.heightProperty());
@@ -355,16 +367,16 @@ public class App extends Application {
         featuredLabel.getStyleClass().add("badge-gold");
         badge.getChildren().add(featuredLabel);
 
-        Text heroTitle = new Text("Jungle Cruise");
+        Text heroTitle = new Text("The Dark Knight");
         heroTitle.getStyleClass().add("hero-title");
 
         HBox metaInfo = new HBox(15);
         metaInfo.setAlignment(Pos.CENTER_LEFT);
-        Text metaText = new Text("2021  |  2h 15m  |  Adventure, Fantasy  |  8.7");
+        Text metaText = new Text("Action  |  Feature  |  8.0");
         metaText.getStyleClass().add("hero-meta");
         metaInfo.getChildren().add(metaText);
 
-        Text heroDesc = new Text("Dr. Lily Houghton enlists the aid of wisecracking skipper Frank Wolff to take her down the Amazon in his ramshackle boat. Together, they search for an ancient tree that holds the power to heal.");
+        Text heroDesc = new Text("Explore the Action, Adventure, and Sci-Fi collections, with eight poster titles in each category.");
         heroDesc.getStyleClass().add("hero-description");
         heroDesc.setWrappingWidth(600);
 
@@ -397,7 +409,7 @@ public class App extends Application {
         title.getStyleClass().add("section-title");
 
         HBox pills = new HBox(12);
-        String[] categories = {"All", "Action", "Adventure", "Sci-Fi", "Comedy", "Drama", "Fantasy"};
+        String[] categories = {"Action", "Adventure", "Sci-Fi"};
 
         for (int i = 0; i < categories.length; i++) {
             Button pill = new Button(categories[i]);
@@ -427,7 +439,7 @@ public class App extends Application {
 
         ScrollPane scroll = new ScrollPane();
         scroll.getStyleClass().add("scroll-pane");
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setFitToHeight(true);
 
@@ -451,19 +463,22 @@ public class App extends Application {
         card.setMaxWidth(180);
 
         StackPane posterPane = new StackPane();
+        posterPane.getStyleClass().add("poster-frame");
         posterPane.setPrefWidth(180);
-        posterPane.setPrefHeight(260);
+        posterPane.setPrefHeight(270);
+        posterPane.setMinWidth(180);
+        posterPane.setMinHeight(270);
 
-        ImageView posterImage = new ImageView(new Image(movie.imageUrl, true));
+        ImageView posterImage = new ImageView(loadPoster(movie.imageUrl));
         posterImage.setFitWidth(180);
-        posterImage.setFitHeight(260);
-        posterImage.setPreserveRatio(false);
+        posterImage.setFitHeight(270);
+        posterImage.setPreserveRatio(true);
 
         // Strict Clipping
-        Rectangle clip = new Rectangle(180, 260);
+        Rectangle clip = new Rectangle(180, 270);
         clip.setArcWidth(16);
         clip.setArcHeight(16);
-        posterImage.setClip(clip);
+        posterPane.setClip(clip);
 
         Label ratingBadge = new Label(String.valueOf(movie.ratingScore));
         ratingBadge.getStyleClass().add("rating-badge");
@@ -472,6 +487,7 @@ public class App extends Application {
 
         StackPane playOverlay = new StackPane();
         playOverlay.getStyleClass().add("play-overlay");
+        playOverlay.setMaxSize(180, 270);
         playOverlay.setOpacity(0);
 
         Text playIcon = new Text("Play");
@@ -698,7 +714,7 @@ public class App extends Application {
         HBox mainLayout = new HBox(50);
         mainLayout.setAlignment(Pos.TOP_LEFT);
 
-        ImageView posterImage = new ImageView(new Image(movie.imageUrl, true));
+        ImageView posterImage = new ImageView(loadPoster(movie.imageUrl));
         posterImage.setFitWidth(320);
         posterImage.setFitHeight(480);
         posterImage.setPreserveRatio(false);
@@ -803,10 +819,11 @@ public class App extends Application {
                 row.setAlignment(Pos.CENTER_LEFT);
                 row.setPadding(new Insets(15, 20, 15, 20));
 
-                ImageView miniPoster = new ImageView(new Image(movie.imageUrl, true));
+                ImageView miniPoster = new ImageView(loadPoster(movie.imageUrl));
                 miniPoster.setFitWidth(70);
-                miniPoster.setFitHeight(100);
-                Rectangle clip = new Rectangle(70, 100);
+                miniPoster.setFitHeight(105);
+                miniPoster.setPreserveRatio(true);
+                Rectangle clip = new Rectangle(70, 105);
                 clip.setArcWidth(10); clip.setArcHeight(10);
                 miniPoster.setClip(clip);
 
@@ -852,32 +869,10 @@ public class App extends Application {
         Text title = new Text("Browse Categories");
         title.getStyleClass().add("screen-title");
 
-        FlowPane grid = new FlowPane(20, 20);
-        String[] categories = {"Action", "Sci-Fi", "Drama", "Comedy", "Thriller",
-                "Romance", "Horror", "Fantasy", "Documentary", "Animation"};
-
-        for (String cat : categories) {
-            VBox catCard = new VBox(10);
-            catCard.getStyleClass().add("category-card");
-            catCard.setAlignment(Pos.CENTER);
-            catCard.setPrefWidth(220);
-            catCard.setPrefHeight(120);
-
-            Text name = new Text(cat);
-            name.getStyleClass().add("category-name");
-            catCard.getChildren().add(name);
-
-            catCard.setOnMouseEntered(e -> {
-                catCard.getStyleClass().add("category-card-hover");
-                name.setFill(Color.web(TEAL_BG));
-            });
-            catCard.setOnMouseExited(e -> {
-                catCard.getStyleClass().remove("category-card-hover");
-                name.setFill(Color.web("#FFFFFF"));
-            });
-            grid.getChildren().add(catCard);
-        }
-        content.getChildren().addAll(title, grid);
+        content.getChildren().add(title);
+        content.getChildren().add(createMovieRow("Action", categoryMovies("Action")));
+        content.getChildren().add(createMovieRow("Adventure", categoryMovies("Adventure")));
+        content.getChildren().add(createMovieRow("Sci-Fi", categoryMovies("Sci-Fi")));
         scrollPane.setContent(content);
         categoriesScreen.getChildren().add(scrollPane);
     }
@@ -980,6 +975,10 @@ public class App extends Application {
     private void showCategoriesScreen() { contentArea.getChildren().setAll(categoriesScreen); }
     private void showWatchlistScreen() { refreshWatchlistScreen(); contentArea.getChildren().setAll(watchlistScreen); }
     private void showSettingsScreen() { contentArea.getChildren().setAll(settingsScreen); }
+
+    private Image loadPoster(String resourcePath) {
+        return new Image(getClass().getResource(resourcePath).toExternalForm(), true);
+    }
 
     private Button createPrimaryButton(String text) {
         Button btn = new Button(text);
