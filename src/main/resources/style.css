@@ -508,3 +508,122 @@
 .slider .thumb:hover {
     -fx-background-color: #FFB733;
 }
+
+.player-screen,
+.player-window,
+.video-container,
+.player-header,
+.player-controls {
+    -fx-background-color: #05080B;
+}
+
+.player-scrim {
+    -fx-background-color: rgba(0, 0, 0, 0.42);
+}
+
+.player-screen {
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.75), 24, 0.2, 0, 8);
+}
+
+.player-header {
+    -fx-padding: 10 14;
+}
+
+.player-title {
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 16px;
+    -fx-font-weight: 700;
+}
+
+.video-placeholder {
+    -fx-text-fill: #8B9EB0;
+    -fx-font-size: 16px;
+}
+
+.video-error {
+    -fx-background-color: rgba(130, 25, 25, 0.9);
+    -fx-background-radius: 8;
+    -fx-padding: 10 14;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 13px;
+}
+
+.player-transport-controls {
+    -fx-padding: 16;
+}
+
+.player-controls {
+    -fx-padding: 14 24 16 24;
+}
+
+.player-back-button {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+    -fx-background-radius: 50;
+    -fx-min-width: 42;
+    -fx-min-height: 42;
+    -fx-max-width: 42;
+    -fx-max-height: 42;
+    -fx-padding: 9;
+    -fx-cursor: hand;
+}
+
+.player-back-button:hover {
+    -fx-background-color: #FCA311;
+}
+
+.player-time-label {
+    -fx-min-width: 92;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+}
+
+.player-progress-slider .track,
+.player-volume-slider .track {
+    -fx-background-color: rgba(255, 255, 255, 0.35);
+    -fx-background-radius: 4;
+}
+
+.player-progress-slider .thumb,
+.player-volume-slider .thumb {
+    -fx-background-color: #FCA311;
+    -fx-background-radius: 50;
+}
+
+.player-progress-slider .thumb:hover,
+.player-volume-slider .thumb:hover {
+    -fx-background-color: #FFB733;
+}
+
+.player-skip-button,
+.player-volume-button {
+    -fx-background-color: rgba(12, 20, 27, 0.76);
+    -fx-background-radius: 50;
+    -fx-min-width: 42;
+    -fx-min-height: 42;
+    -fx-max-width: 42;
+    -fx-max-height: 42;
+    -fx-padding: 9;
+    -fx-cursor: hand;
+}
+
+.player-skip-button:hover,
+.player-volume-button:hover {
+    -fx-background-color: rgba(252, 163, 17, 0.85);
+}
+
+.player-play-button {
+    -fx-background-color: #FCA311;
+    -fx-background-radius: 50;
+    -fx-min-width: 62;
+    -fx-min-height: 62;
+    -fx-max-width: 62;
+    -fx-max-height: 62;
+    -fx-padding: 17;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.55), 12, 0, 0, 3);
+}
+
+.player-play-button:hover {
+    -fx-background-color: #FFB733;
+}

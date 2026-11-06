@@ -8,6 +8,8 @@ import java.util.List;
 import javafx.animation.FadeTransition;
 import javafx.animation.ScaleTransition;
 import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
@@ -17,6 +19,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -36,7 +39,9 @@ import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.SVGPath;
 import javafx.scene.text.Text;
+import javafx.stage.FileChooser;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -44,6 +49,8 @@ import javafx.util.Duration;
 public class App extends Application {
 
     // --- Theme Constants ---
+    private static final double PLAYER_WINDOW_WIDTH = 800;
+    private static final double PLAYER_WINDOW_HEIGHT = 520;
     private static final String TEAL_BG = "#0B1A26";
     private static final String TEAL_PANEL = "#132A38";
     private static final String CYAN_ACCENT = "#00D2FF";
@@ -53,6 +60,7 @@ public class App extends Application {
     // --- Layout Managers ---
     private BorderPane root;
     private StackPane contentArea;
+    private VBox sidebar;
 
     // --- Screens ---
     private VBox homeScreen;
@@ -64,7 +72,6 @@ public class App extends Application {
     private VBox tvShowsScreen;
     private VBox moviesScreen;
     private BorderPane mediaPlayerScreen;
-
     // --- Data Models ---
     private final List<Movie> allMovies = new ArrayList<>();
     private final List<Movie> watchlist = new ArrayList<>();
@@ -75,10 +82,21 @@ public class App extends Application {
     // --- Media Player State ---
     private MediaPlayer mediaPlayer;
     private MediaView mediaView;
+    private Stage mainStage;
+    private StackPane videoContainer;
+    private Region playerScrim;
+    private Label videoPlaceholder;
+    private Label playbackErrorLabel;
+    private Label playerTitleLabel;
+    private String previousWindowTitle;
     private Slider progressSlider;
     private Slider volumeSlider;
     private Label timeLabel;
-    private Label videoTitleLabel;
+    private Button playPauseButton;
+    private Button muteButton;
+    private Button fullscreenButton;
+    private double previousVolume = 0.5;
+    private boolean muted;
 
     public static void main(String[] args) {
         launch(args);
@@ -136,11 +154,12 @@ public class App extends Application {
     }
 
     private void buildUI(Stage stage) {
+        mainStage = stage;
         root = new BorderPane();
         root.getStyleClass().add("root-pane");
 
         // Sidebar
-        VBox sidebar = createSidebar();
+        sidebar = createSidebar();
         root.setLeft(sidebar);
 
         // Content Area
@@ -535,150 +554,364 @@ public class App extends Application {
     // MEDIA PLAYER SCREEN
     // =========================================================================
     private void createMediaPlayerScreen() {
+        // Keep playback inside the app's existing content area and scene.
         mediaPlayerScreen = new BorderPane();
-        mediaPlayerScreen.getStyleClass().add("screen");
-        mediaPlayerScreen.setStyle("-fx-background-color: " + TEAL_BG + ";");
+        mediaPlayerScreen.getStyleClass().add("player-screen");
+        playerScrim = new Region();
+        playerScrim.getStyleClass().add("player-scrim");
 
-        // Top Bar
-        HBox topBar = new HBox(20);
-        topBar.setPadding(new Insets(20, 40, 20, 40));
-        topBar.setAlignment(Pos.CENTER_LEFT);
+        videoContainer = new StackPane();
+        videoContainer.getStyleClass().add("video-container");
 
-        Button backBtn = new Button("< Back");
-        backBtn.getStyleClass().add("secondary-button");
-        backBtn.setOnAction(e -> {
-            if (mediaPlayer != null) mediaPlayer.stop();
-            showHomeScreen();
-        });
+        videoPlaceholder = new Label("Choose a video to start playback");
+        videoPlaceholder.getStyleClass().add("video-placeholder");
 
-        videoTitleLabel = new Label("Now Playing");
-        videoTitleLabel.getStyleClass().add("section-title");
-        videoTitleLabel.setStyle("-fx-text-fill: white; -fx-font-size: 20px;");
+        playbackErrorLabel = new Label();
+        playbackErrorLabel.getStyleClass().add("video-error");
+        playbackErrorLabel.setWrapText(true);
+        playbackErrorLabel.setMaxWidth(520);
+        playbackErrorLabel.setVisible(false);
 
-        topBar.getChildren().addAll(backBtn, videoTitleLabel);
+        // Center the transport controls over the video while keeping the timeline below.
+        Button skipBackButton = createPlayerButton(
+                "M5 5h2v14H5z M19 5v14l-10-7z",
+                "player-skip-button", "Skip back 5 seconds");
+        skipBackButton.setOnAction(e -> seekBy(-5));
 
-        // Video Area
-        StackPane videoContainer = new StackPane();
-        videoContainer.setStyle("-fx-background-color: #000000;");
+        playPauseButton = createPlayerButton(
+                "M8 5v14l11-7z", "player-play-button", "Play");
+        playPauseButton.setOnAction(e -> togglePlayback());
 
-        Text placeholder = new Text("Video Playback Area\n(Place a valid .mp4 file to play)");
-        placeholder.setFill(Color.web(TEXT_MUTED));
-        placeholder.setStyle("-fx-font-size: 20px; -fx-text-alignment: center;");
-        videoContainer.getChildren().add(placeholder);
+        Button skipForwardButton = createPlayerButton(
+                "M17 5h2v14h-2z M5 5v14l10-7z",
+                "player-skip-button", "Skip forward 5 seconds");
+        skipForwardButton.setOnAction(e -> seekBy(5));
 
-        // Controls Box
-        VBox controlsBox = new VBox(15);
-        controlsBox.setPadding(new Insets(20, 40, 30, 40));
-        controlsBox.setStyle("-fx-background-color: " + TEAL_PANEL + "; -fx-background-radius: 15 15 0 0;");
+        HBox transportControls = new HBox(38, skipBackButton, playPauseButton, skipForwardButton);
+        transportControls.setAlignment(Pos.CENTER);
+        transportControls.getStyleClass().add("player-transport-controls");
 
-        HBox progressBox = new HBox(15);
-        progressBox.setAlignment(Pos.CENTER_LEFT);
         progressSlider = new Slider(0, 100, 0);
-        progressSlider.getStyleClass().add("slider");
+        progressSlider.getStyleClass().add("player-progress-slider");
         HBox.setHgrow(progressSlider, Priority.ALWAYS);
+        progressSlider.setOnMouseReleased(e -> seekToSliderPosition());
+        progressSlider.setOnKeyReleased(e -> seekToSliderPosition());
 
         timeLabel = new Label("00:00 / 00:00");
-        timeLabel.setStyle("-fx-text-fill: " + TEXT_MUTED + "; -fx-font-size: 14px;");
-        progressBox.getChildren().addAll(progressSlider, timeLabel);
+        timeLabel.getStyleClass().add("player-time-label");
+        HBox progressRow = new HBox(14, progressSlider, timeLabel);
+        progressRow.setAlignment(Pos.CENTER);
 
-        HBox buttonBox = new HBox(20);
-        buttonBox.setAlignment(Pos.CENTER);
+        muteButton = createPlayerButton(
+                "M3 9v6h4l5 5V4L7 9H3z M16 9.5a4 4 0 0 1 0 5 M14 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z",
+                "player-volume-button", "Mute");
+        muteButton.setOnAction(e -> toggleMute());
 
-        Button playPauseBtn = createPrimaryButton("Play");
-        playPauseBtn.setPrefWidth(120);
-        playPauseBtn.setOnAction(e -> {
-            if (mediaPlayer != null) {
-                if (mediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
-                    mediaPlayer.pause();
-                    playPauseBtn.setText("Play");
-                } else {
-                    mediaPlayer.play();
-                    playPauseBtn.setText("Pause");
-                }
-            }
-        });
-
-        Button stopBtn = createSecondaryButton("Stop");
-        stopBtn.setPrefWidth(100);
-        stopBtn.setOnAction(e -> {
-            if (mediaPlayer != null) {
-                mediaPlayer.stop();
-                playPauseBtn.setText("Play");
-                progressSlider.setValue(0);
-            }
-        });
-
-        HBox volumeBox = new HBox(10);
-        volumeBox.setAlignment(Pos.CENTER_LEFT);
-        Text volIcon = new Text("Vol");
-        volIcon.setStyle("-fx-fill: " + TEXT_MUTED + "; -fx-font-size: 14px; -fx-font-weight: bold;");
         volumeSlider = new Slider(0, 100, 50);
-        volumeSlider.getStyleClass().add("slider");
-        volumeSlider.setPrefWidth(150);
-        volumeBox.getChildren().addAll(volIcon, volumeSlider);
+        volumeSlider.getStyleClass().add("player-volume-slider");
+        volumeSlider.setPrefWidth(125);
+        volumeSlider.valueProperty().addListener((obs, oldValue, newValue) -> {
+            if (mediaPlayer != null) {
+                mediaPlayer.setVolume(newValue.doubleValue() / 100);
+            }
+            if (newValue.doubleValue() > 0) {
+                previousVolume = newValue.doubleValue() / 100;
+                muted = false;
+            } else {
+                muted = true;
+            }
+            updateMuteIcon();
+        });
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox volumeControls = new HBox(10, muteButton, volumeSlider);
+        volumeControls.setAlignment(Pos.CENTER_LEFT);
 
-        buttonBox.getChildren().addAll(playPauseBtn, stopBtn, spacer, volumeBox);
-        controlsBox.getChildren().addAll(progressBox, buttonBox);
+        Region controlsSpacer = new Region();
+        HBox.setHgrow(controlsSpacer, Priority.ALWAYS);
+        fullscreenButton = createPlayerButton(
+                "M5 5h5v2H7v3H5z M14 5h5v5h-2V7h-3z M5 14h2v3h3v2H5z M17 14h2v5h-5v-2h3z",
+                "player-volume-button", "Enter fullscreen");
+        fullscreenButton.setOnAction(e -> toggleFullscreen());
 
-        mediaPlayerScreen.setTop(topBar);
+        HBox bottomRow = new HBox(volumeControls, controlsSpacer, fullscreenButton);
+        bottomRow.setAlignment(Pos.CENTER_LEFT);
+
+        // Anchor time, volume, and fullscreen controls to the bottom edge of the video.
+        VBox playerControls = new VBox(12, progressRow, bottomRow);
+        playerControls.getStyleClass().add("player-controls");
+        playerControls.setMaxWidth(Double.MAX_VALUE);
+
+        videoContainer.getChildren().addAll(videoPlaceholder, playbackErrorLabel, transportControls);
+        StackPane.setAlignment(videoPlaceholder, Pos.CENTER);
+        StackPane.setAlignment(playbackErrorLabel, Pos.TOP_CENTER);
+        StackPane.setMargin(playbackErrorLabel, new Insets(18));
+        StackPane.setAlignment(transportControls, Pos.CENTER);
+
+        // Return to the exact screen that was visible before the player opened.
+        Button backButton = createPlayerButton(
+                "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z",
+                "player-back-button", "Back");
+        backButton.setOnAction(e -> closePlayer());
+        playerTitleLabel = new Label("Now Playing");
+        playerTitleLabel.getStyleClass().add("player-title");
+        HBox playerHeader = new HBox(18, backButton, playerTitleLabel);
+        playerHeader.setAlignment(Pos.CENTER_LEFT);
+        playerHeader.getStyleClass().add("player-header");
+
+        mediaPlayerScreen.setTop(playerHeader);
         mediaPlayerScreen.setCenter(videoContainer);
-        mediaPlayerScreen.setBottom(controlsBox);
+        mediaPlayerScreen.setBottom(playerControls);
+        mediaPlayerScreen.setMinSize(0, 0);
+        mediaPlayerScreen.setMaxSize(PLAYER_WINDOW_WIDTH, PLAYER_WINDOW_HEIGHT);
+        mediaPlayerScreen.prefWidthProperty().bind(Bindings.min(
+                contentArea.widthProperty(), PLAYER_WINDOW_WIDTH));
+        mediaPlayerScreen.prefHeightProperty().bind(Bindings.min(
+                contentArea.heightProperty(), PLAYER_WINDOW_HEIGHT));
+
+        // Fullscreen applies to the primary app window, including this in-scene player.
+        mainStage.fullScreenProperty().addListener((obs, wasFullScreen, isFullScreen) -> {
+            if (isFullScreen) {
+                mediaPlayerScreen.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+                mediaPlayerScreen.prefWidthProperty().bind(contentArea.widthProperty());
+                mediaPlayerScreen.prefHeightProperty().bind(contentArea.heightProperty());
+            } else {
+                mediaPlayerScreen.setMaxSize(PLAYER_WINDOW_WIDTH, PLAYER_WINDOW_HEIGHT);
+                mediaPlayerScreen.prefWidthProperty().bind(Bindings.min(
+                        contentArea.widthProperty(), PLAYER_WINDOW_WIDTH));
+                mediaPlayerScreen.prefHeightProperty().bind(Bindings.min(
+                        contentArea.heightProperty(), PLAYER_WINDOW_HEIGHT));
+            }
+            fullscreenButton.setGraphic(createPlayerIcon(isFullScreen
+                    ? "M5 5h2v3h3v2H5z M17 5v5h-5V8h3V5z M5 14h5v5H8v-3H5z M14 14h5v5h-2v-3h-3z"
+                    : "M5 5h5v2H7v3H5z M14 5h5v5h-2V7h-3z M5 14h2v3h3v2H5z M17 14h2v5h-5v-2h3z"));
+            fullscreenButton.setTooltip(new Tooltip(isFullScreen ? "Exit fullscreen" : "Enter fullscreen"));
+            fullscreenButton.setAccessibleText(isFullScreen ? "Exit fullscreen" : "Enter fullscreen");
+        });
     }
 
-    private void playVideo(String path, String title) {
-        try {
-            if (mediaPlayer != null) {
-                mediaPlayer.stop();
-                mediaPlayer.dispose();
-            }
-            videoTitleLabel.setText(title);
+    private Button createPlayerButton(String iconPath, String styleClass, String tooltip) {
+        Button button = new Button();
+        button.getStyleClass().add(styleClass);
+        button.setGraphic(createPlayerIcon(iconPath));
+        button.setTooltip(new Tooltip(tooltip));
+        button.setAccessibleText(tooltip);
+        return button;
+    }
 
-            File file = new File(path);
-            if (!file.exists()) {
-                return;
-            }
+    private StackPane createPlayerIcon(String path) {
+        SVGPath icon = new SVGPath();
+        icon.setContent(path);
+        icon.setFill(Color.WHITE);
+        icon.setMouseTransparent(true);
+        double iconWidth = icon.getBoundsInLocal().getWidth();
+        double iconHeight = icon.getBoundsInLocal().getHeight();
+        double scale = 20 / Math.max(iconWidth, iconHeight);
+        icon.setScaleX(scale);
+        icon.setScaleY(scale);
+
+        StackPane graphic = new StackPane(icon);
+        graphic.setMinSize(24, 24);
+        graphic.setPrefSize(24, 24);
+        graphic.setMaxSize(24, 24);
+        graphic.setMouseTransparent(true);
+        return graphic;
+    }
+
+    private void openPlayer(Movie movie) {
+        // Layer the compact player over the current view instead of replacing app content.
+        previousWindowTitle = mainStage.getTitle();
+        disposeMediaPlayer();
+        playerTitleLabel.setText(movie.title);
+        videoPlaceholder.setText("Choose a video file to play " + movie.title);
+        videoPlaceholder.setVisible(true);
+        playbackErrorLabel.setVisible(false);
+        timeLabel.setText("00:00 / 00:00");
+        progressSlider.setValue(0);
+        StackPane.setAlignment(playerScrim, Pos.CENTER);
+        StackPane.setAlignment(mediaPlayerScreen, Pos.CENTER);
+        contentArea.getChildren().addAll(playerScrim, mediaPlayerScreen);
+        mainStage.setTitle("StreamFlix - " + movie.title);
+
+        File defaultVideo = new File("C:\\videos\\" + movie.title.replace(" ", "_") + ".mp4");
+        if (defaultVideo.isFile()) {
+            loadVideo(defaultVideo);
+        } else {
+            videoPlaceholder.setText("Choose a video file to play " + movie.title);
+            Platform.runLater(() -> chooseVideoFile());
+        }
+    }
+
+    private void chooseVideoFile() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Choose a video");
+        fileChooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("Video files", "*.mp4", "*.m4v", "*.mov", "*.mkv"));
+        File videoFile = fileChooser.showOpenDialog(mainStage);
+        if (videoFile != null) {
+            loadVideo(videoFile);
+        }
+    }
+
+    private void loadVideo(File file) {
+        try {
+            disposeMediaPlayer();
+            playbackErrorLabel.setVisible(false);
+            videoPlaceholder.setVisible(true);
+            timeLabel.setText("00:00 / 00:00");
+            progressSlider.setValue(0);
 
             Media media = new Media(file.toURI().toString());
             mediaPlayer = new MediaPlayer(media);
             mediaView = new MediaView(mediaPlayer);
+            mediaView.setPreserveRatio(true);
+            mediaView.fitWidthProperty().bind(videoContainer.widthProperty());
+            mediaView.fitHeightProperty().bind(videoContainer.heightProperty());
+            // Add video beneath the placeholder and controls, which remain layered above it.
+            videoContainer.getChildren().add(0, mediaView);
 
-            // Center video container automatically handles scaling now
-            mediaView.fitWidthProperty().bind(mediaPlayerScreen.widthProperty());
-            mediaView.fitHeightProperty().bind(mediaPlayerScreen.heightProperty().subtract(200));
-
-            StackPane videoContainer = (StackPane) mediaPlayerScreen.getCenter();
-            videoContainer.getChildren().setAll(mediaView);
-
-            mediaPlayer.currentTimeProperty().addListener((obs, oldTime, newTime) -> {
-                if (!progressSlider.isValueChanging()) {
-                    progressSlider.setValue(newTime.toSeconds() / mediaPlayer.getTotalDuration().toSeconds() * 100);
+            MediaPlayer activePlayer = mediaPlayer;
+            activePlayer.volumeProperty().set(volumeSlider.getValue() / 100);
+            // Keep the seek bar and displayed time synchronized with the active media.
+            activePlayer.currentTimeProperty().addListener((obs, oldTime, newTime) -> {
+                Duration total = activePlayer.getTotalDuration();
+                if (!progressSlider.isValueChanging() && isKnownDuration(total)) {
+                    progressSlider.setValue(newTime.toMillis() / total.toMillis() * 100);
                 }
-                timeLabel.setText(formatTime(newTime) + " / " + formatTime(mediaPlayer.getTotalDuration()));
+                updateTimeLabel(newTime, total);
             });
-
-            progressSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-                if (progressSlider.isValueChanging()) {
-                    mediaPlayer.seek(mediaPlayer.getTotalDuration().multiply(newVal.doubleValue() / 100));
-                }
+            activePlayer.totalDurationProperty().addListener((obs, oldDuration, newDuration) -> {
+                updateTimeLabel(activePlayer.getCurrentTime(), newDuration);
             });
-
-            volumeSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-                if (mediaPlayer != null) mediaPlayer.setVolume(newVal.doubleValue() / 100);
+            activePlayer.setOnReady(() -> {
+                videoPlaceholder.setVisible(false);
+                activePlayer.play();
+                updatePlayPauseIcon();
             });
-
-            mediaPlayer.setOnReady(() -> mediaPlayer.play());
-
-            contentArea.getChildren().setAll(mediaPlayerScreen);
-
+            activePlayer.setOnError(() -> showPlaybackError(activePlayer.getError() == null
+                    ? "Unable to play this video." : activePlayer.getError().getMessage()));
+            media.setOnError(() -> showPlaybackError(media.getError() == null
+                    ? "Unable to load this video." : media.getError().getMessage()));
+            activePlayer.statusProperty().addListener((obs, oldStatus, newStatus) -> updatePlayPauseIcon());
         } catch (Exception e) {
-            e.printStackTrace();
+            showPlaybackError("Unable to open video: " + e.getMessage());
         }
     }
 
+    private void disposeMediaPlayer() {
+        // Release the native media resources before leaving or replacing the player view.
+        if (mediaPlayer != null) {
+            mediaPlayer.stop();
+            mediaPlayer.dispose();
+            mediaPlayer = null;
+        }
+        if (mediaView != null) {
+            mediaView.fitWidthProperty().unbind();
+            mediaView.fitHeightProperty().unbind();
+            videoContainer.getChildren().remove(mediaView);
+            mediaView = null;
+        }
+        if (playPauseButton != null) {
+            updatePlayPauseIcon();
+        }
+    }
+
+    private void closePlayer() {
+        disposeMediaPlayer();
+        if (mainStage.isFullScreen()) {
+            mainStage.setFullScreen(false);
+        }
+        contentArea.getChildren().removeAll(mediaPlayerScreen, playerScrim);
+        mainStage.setTitle(previousWindowTitle == null
+                ? "StreamFlix - Premium Streaming" : previousWindowTitle);
+    }
+
+    private void showPlaybackError(String message) {
+        playbackErrorLabel.setText(message == null || message.isEmpty()
+                ? "Unable to play this video." : message);
+        playbackErrorLabel.setVisible(true);
+        videoPlaceholder.setVisible(false);
+    }
+
+    private void togglePlayback() {
+        if (mediaPlayer == null) {
+            chooseVideoFile();
+        } else if (mediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
+            mediaPlayer.pause();
+        } else {
+            mediaPlayer.play();
+        }
+        updatePlayPauseIcon();
+    }
+
+    private void updatePlayPauseIcon() {
+        boolean playing = mediaPlayer != null && mediaPlayer.getStatus() == MediaPlayer.Status.PLAYING;
+        playPauseButton.setGraphic(createPlayerIcon(playing
+                ? "M6 5h4v14H6z M14 5h4v14h-4z"
+                : "M8 5v14l11-7z"));
+        playPauseButton.setTooltip(new Tooltip(playing ? "Pause" : "Play"));
+        playPauseButton.setAccessibleText(playing ? "Pause" : "Play");
+    }
+
+    private void seekBy(double seconds) {
+        if (mediaPlayer != null && isKnownDuration(mediaPlayer.getTotalDuration())) {
+            Duration currentTime = mediaPlayer.getCurrentTime();
+            if (seconds < 0 && currentTime.toSeconds() <= Math.abs(seconds)) {
+                return;
+            }
+            seekTo(currentTime.add(Duration.seconds(seconds)));
+        }
+    }
+
+    private void seekToSliderPosition() {
+        if (mediaPlayer != null && isKnownDuration(mediaPlayer.getTotalDuration())) {
+            seekTo(mediaPlayer.getTotalDuration().multiply(progressSlider.getValue() / 100));
+        }
+    }
+
+    private void seekTo(Duration position) {
+        Duration total = mediaPlayer.getTotalDuration();
+        double clampedMillis = Math.max(0, Math.min(position.toMillis(), total.toMillis()));
+        mediaPlayer.seek(Duration.millis(clampedMillis));
+    }
+
+    private void toggleMute() {
+        if (muted) {
+            double restoredVolume = previousVolume > 0 ? previousVolume : 0.5;
+            volumeSlider.setValue(restoredVolume * 100);
+            muted = false;
+        } else {
+            previousVolume = volumeSlider.getValue() > 0 ? volumeSlider.getValue() / 100 : previousVolume;
+            volumeSlider.setValue(0);
+            muted = true;
+        }
+        updateMuteIcon();
+    }
+
+    private void updateMuteIcon() {
+        muteButton.setGraphic(createPlayerIcon(muted
+                ? "M3 9v6h4l5 5V4L7 9H3z M16 9l1.4-1.4 2.1 2.1 2.1-2.1L23 9l-2.1 2.1 2.1 2.1-1.4 1.4-2.1-2.1-2.1 2.1-1.4-1.4 2.1-2.1z"
+                : "M3 9v6h4l5 5V4L7 9H3z M16 9.5a4 4 0 0 1 0 5 M14 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z"));
+        muteButton.setTooltip(new Tooltip(muted ? "Unmute" : "Mute"));
+        muteButton.setAccessibleText(muted ? "Unmute" : "Mute");
+    }
+
+    private void toggleFullscreen() {
+        mainStage.setFullScreen(!mainStage.isFullScreen());
+    }
+
+    private boolean isKnownDuration(Duration duration) {
+        return duration != null && !duration.isUnknown() && !duration.isIndefinite()
+                && duration.toMillis() > 0;
+    }
+
+    private void updateTimeLabel(Duration current, Duration total) {
+        timeLabel.setText(formatTime(current) + " / " + formatTime(total));
+    }
+
     private String formatTime(Duration duration) {
+        if (duration == null || duration.isUnknown() || duration.isIndefinite()) {
+            return "00:00";
+        }
         int minutes = (int) duration.toMinutes();
         int seconds = (int) duration.toSeconds() % 60;
         return String.format("%02d:%02d", minutes, seconds);
@@ -709,6 +942,7 @@ public class App extends Application {
     }
 
     private void showMovieDetails(Movie movie) {
+        mainStage.setTitle("StreamFlix - " + movie.title);
         movieDetailsContainer.getChildren().clear();
 
         HBox mainLayout = new HBox(50);
@@ -748,10 +982,7 @@ public class App extends Application {
 
         Button playBtn = createPrimaryButton("Play Movie");
         playBtn.setPrefWidth(200);
-        playBtn.setOnAction(e -> {
-            String localPath = "C:/videos/" + movie.title.replace(" ", "_") + ".mp4";
-            playVideo(localPath, movie.title);
-        });
+        playBtn.setOnAction(e -> openPlayer(movie));
 
         Button watchlistBtn = createSecondaryButton(watchlist.contains(movie) ? "In Watchlist" : "Add to Watchlist");
         watchlistBtn.setOnAction(e -> {
