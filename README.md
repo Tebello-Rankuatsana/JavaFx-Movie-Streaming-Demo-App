@@ -23,5 +23,11 @@ To build the project without launching the desktop application:
 mvn clean package
 ```
 
-The demo includes sample movie listings and a video player for a local video
-file. Movie poster images are loaded from the internet.
+The demo includes sample movie listings. Selecting **Play Trailer** prompts
+for a TMDB API Key (v3) or API Read Access Token (v4) on first use, looks up
+the movie's YouTube trailer, and plays it in the app. The credential stays in
+memory for the current app session and is not saved; it will be requested
+again after restarting the app. Each user should provide their own TMDB
+credential. Trailer lookup requires an internet connection. If YouTube does
+not play in the embedded browser, use **Open in browser** in the player.
+Movie poster images are loaded from the internet.

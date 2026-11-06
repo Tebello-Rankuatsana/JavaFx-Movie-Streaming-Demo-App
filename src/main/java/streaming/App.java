@@ -1,9 +1,17 @@
 package streaming;
 
 
-import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 import javafx.animation.FadeTransition;
 import javafx.animation.ScaleTransition;
@@ -15,9 +23,11 @@ import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.effect.DropShadow;
@@ -33,9 +43,6 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.media.Media;
-import javafx.scene.media.MediaPlayer;
-import javafx.scene.media.MediaView;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
@@ -48,10 +55,15 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
 import javafx.geometry.VPos;
-import javafx.stage.FileChooser;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import javafx.scene.web.WebView;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 public class App extends Application {
 
@@ -63,6 +75,7 @@ public class App extends Application {
     private static final String CYAN_ACCENT = "#00D2FF";
     private static final String GOLD_ACCENT = "#FCA311";
     private static final String TEXT_MUTED = "#8B9EB0";
+    private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
     // --- Layout Managers ---
     private BorderPane root;
@@ -87,8 +100,6 @@ public class App extends Application {
     private final List<Movie> popularMovies = new ArrayList<>();
 
     // --- Media Player State ---
-    private MediaPlayer mediaPlayer;
-    private MediaView mediaView;
     private Stage mainStage;
     private StackPane videoContainer;
     private Region playerScrim;
@@ -96,14 +107,14 @@ public class App extends Application {
     private Label playbackErrorLabel;
     private Label playerTitleLabel;
     private String previousWindowTitle;
-    private Slider progressSlider;
-    private Slider volumeSlider;
-    private Label timeLabel;
-    private Button playPauseButton;
-    private Button muteButton;
     private Button fullscreenButton;
-    private double previousVolume = 0.5;
-    private boolean muted;
+    private Button openTrailerButton;
+    private WebView trailerWebView;
+    // Kept only in memory so one key prompt serves all trailer lookups in this app run.
+    // It is cleared if TMDB rejects it and is never written to disk or bundled with the app.
+    private String tmdbApiKey;
+    private String currentYoutubeKey;
+    private long trailerRequestId;
 
     public static void main(String[] args) {
         launch(args);
@@ -687,7 +698,6 @@ public class App extends Application {
     // MEDIA PLAYER SCREEN
     // =========================================================================
     private void createMediaPlayerScreen() {
-        // Keep playback inside the app's existing content area and scene.
         mediaPlayerScreen = new BorderPane();
         mediaPlayerScreen.getStyleClass().add("player-screen");
         playerScrim = new Region();
@@ -696,7 +706,7 @@ public class App extends Application {
         videoContainer = new StackPane();
         videoContainer.getStyleClass().add("video-container");
 
-        videoPlaceholder = new Label("Choose a video to start playback");
+        videoPlaceholder = new Label("Enter your TMDB API key to find a trailer");
         videoPlaceholder.getStyleClass().add("video-placeholder");
 
         playbackErrorLabel = new Label();
@@ -705,87 +715,47 @@ public class App extends Application {
         playbackErrorLabel.setMaxWidth(520);
         playbackErrorLabel.setVisible(false);
 
-        // Center the transport controls over the video while keeping the timeline below.
-        Button skipBackButton = createPlayerButton(
-                "M5 5h2v14H5z M19 5v14l-10-7z",
-                "player-skip-button", "Skip back 5 seconds");
-        skipBackButton.setOnAction(e -> seekBy(-5));
+        trailerWebView = new WebView();
+        trailerWebView.setContextMenuEnabled(false);
+        trailerWebView.setVisible(false);
+        trailerWebView.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 
-        playPauseButton = createPlayerButton(
-                "M8 5v14l11-7z", "player-play-button", "Play");
-        playPauseButton.setOnAction(e -> togglePlayback());
-
-        Button skipForwardButton = createPlayerButton(
-                "M17 5h2v14h-2z M5 5v14l10-7z",
-                "player-skip-button", "Skip forward 5 seconds");
-        skipForwardButton.setOnAction(e -> seekBy(5));
-
-        HBox transportControls = new HBox(38, skipBackButton, playPauseButton, skipForwardButton);
-        transportControls.setAlignment(Pos.CENTER);
-        transportControls.getStyleClass().add("player-transport-controls");
-
-        progressSlider = new Slider(0, 100, 0);
-        progressSlider.getStyleClass().add("player-progress-slider");
-        HBox.setHgrow(progressSlider, Priority.ALWAYS);
-        progressSlider.setOnMouseReleased(e -> seekToSliderPosition());
-        progressSlider.setOnKeyReleased(e -> seekToSliderPosition());
-
-        timeLabel = new Label("00:00 / 00:00");
-        timeLabel.getStyleClass().add("player-time-label");
-        HBox progressRow = new HBox(14, progressSlider, timeLabel);
-        progressRow.setAlignment(Pos.CENTER);
-
-        muteButton = createPlayerButton(
-                "M3 9v6h4l5 5V4L7 9H3z M16 9.5a4 4 0 0 1 0 5 M14 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z",
-                "player-volume-button", "Mute");
-        muteButton.setOnAction(e -> toggleMute());
-
-        volumeSlider = new Slider(0, 100, 50);
-        volumeSlider.getStyleClass().add("player-volume-slider");
-        volumeSlider.setPrefWidth(125);
-        volumeSlider.valueProperty().addListener((obs, oldValue, newValue) -> {
-            if (mediaPlayer != null) {
-                mediaPlayer.setVolume(newValue.doubleValue() / 100);
-            }
-            if (newValue.doubleValue() > 0) {
-                previousVolume = newValue.doubleValue() / 100;
-                muted = false;
-            } else {
-                muted = true;
-            }
-            updateMuteIcon();
-        });
-
-        HBox volumeControls = new HBox(10, muteButton, volumeSlider);
-        volumeControls.setAlignment(Pos.CENTER_LEFT);
-
-        Region controlsSpacer = new Region();
-        HBox.setHgrow(controlsSpacer, Priority.ALWAYS);
+        Label sourceLabel = new Label("Trailer playback provided by YouTube");
+        sourceLabel.getStyleClass().add("player-time-label");
+        Region footerSpacer = new Region();
+        HBox.setHgrow(footerSpacer, Priority.ALWAYS);
+        openTrailerButton = createSecondaryButton("");
+        openTrailerButton.setGraphic(createPlayerIcon(
+                "M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3z "
+                        + "M5 5h5v2H5v12h12v-5h2v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"));
+        openTrailerButton.setTooltip(new Tooltip("Open trailer in browser"));
+        openTrailerButton.setAccessibleText("Open trailer in browser");
+        openTrailerButton.setDisable(true);
+        openTrailerButton.setOnAction(e -> openTrailerInBrowser());
         fullscreenButton = createPlayerButton(
                 "M5 5h5v2H7v3H5z M14 5h5v5h-2V7h-3z M5 14h2v3h3v2H5z M17 14h2v5h-5v-2h3z",
                 "player-volume-button", "Enter fullscreen");
         fullscreenButton.setOnAction(e -> toggleFullscreen());
+        HBox playerFooter = new HBox(12, sourceLabel, openTrailerButton, footerSpacer, fullscreenButton);
+        playerFooter.setAlignment(Pos.CENTER_LEFT);
+        playerFooter.getStyleClass().add("player-controls");
 
-        HBox bottomRow = new HBox(volumeControls, controlsSpacer, fullscreenButton);
-        bottomRow.setAlignment(Pos.CENTER_LEFT);
-
-        // Anchor time, volume, and fullscreen controls to the bottom edge of the video.
-        VBox playerControls = new VBox(12, progressRow, bottomRow);
-        playerControls.getStyleClass().add("player-controls");
-        playerControls.setMaxWidth(Double.MAX_VALUE);
-
-        videoContainer.getChildren().addAll(videoPlaceholder, playbackErrorLabel, transportControls);
+        videoContainer.getChildren().addAll(trailerWebView, videoPlaceholder, playbackErrorLabel);
+        trailerWebView.getEngine().getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
+            if (newState == javafx.concurrent.Worker.State.FAILED
+                    && trailerWebView.isVisible()) {
+                showPlaybackError("The embedded YouTube player could not load. Use Open in browser to watch this trailer.");
+            }
+        });
         StackPane.setAlignment(videoPlaceholder, Pos.CENTER);
         StackPane.setAlignment(playbackErrorLabel, Pos.TOP_CENTER);
         StackPane.setMargin(playbackErrorLabel, new Insets(18));
-        StackPane.setAlignment(transportControls, Pos.CENTER);
 
-        // Return to the exact screen that was visible before the player opened.
         Button backButton = createPlayerButton(
                 "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z",
                 "player-back-button", "Back");
         backButton.setOnAction(e -> closePlayer());
-        playerTitleLabel = new Label("Now Playing");
+        playerTitleLabel = new Label("Movie Trailer");
         playerTitleLabel.getStyleClass().add("player-title");
         HBox playerHeader = new HBox(18, backButton, playerTitleLabel);
         playerHeader.setAlignment(Pos.CENTER_LEFT);
@@ -793,7 +763,7 @@ public class App extends Application {
 
         mediaPlayerScreen.setTop(playerHeader);
         mediaPlayerScreen.setCenter(videoContainer);
-        mediaPlayerScreen.setBottom(playerControls);
+        mediaPlayerScreen.setBottom(playerFooter);
         mediaPlayerScreen.setMinSize(0, 0);
         mediaPlayerScreen.setMaxSize(PLAYER_WINDOW_WIDTH, PLAYER_WINDOW_HEIGHT);
         mediaPlayerScreen.prefWidthProperty().bind(Bindings.min(
@@ -801,7 +771,6 @@ public class App extends Application {
         mediaPlayerScreen.prefHeightProperty().bind(Bindings.min(
                 contentArea.heightProperty(), PLAYER_WINDOW_HEIGHT));
 
-        // Fullscreen applies to the primary app window, including this in-scene player.
         mainStage.fullScreenProperty().addListener((obs, wasFullScreen, isFullScreen) -> {
             if (isFullScreen) {
                 mediaPlayerScreen.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
@@ -851,105 +820,218 @@ public class App extends Application {
     }
 
     private void openPlayer(Movie movie) {
-        // Layer the compact player over the current view instead of replacing app content.
         previousWindowTitle = mainStage.getTitle();
-        disposeMediaPlayer();
+        trailerRequestId++;
+        trailerWebView.getEngine().load("about:blank");
+        trailerWebView.setVisible(false);
+        currentYoutubeKey = null;
+        openTrailerButton.setDisable(true);
         playerTitleLabel.setText(movie.title);
-        videoPlaceholder.setText("Choose a video file to play " + movie.title);
+        videoPlaceholder.setText("Looking up the trailer for " + movie.title + "...");
         videoPlaceholder.setVisible(true);
         playbackErrorLabel.setVisible(false);
-        timeLabel.setText("00:00 / 00:00");
-        progressSlider.setValue(0);
         StackPane.setAlignment(playerScrim, Pos.CENTER);
         StackPane.setAlignment(mediaPlayerScreen, Pos.CENTER);
         contentArea.getChildren().addAll(playerScrim, mediaPlayerScreen);
         mainStage.setTitle("StreamFlix - " + movie.title);
 
-        File defaultVideo = new File("C:\\videos\\" + movie.title.replace(" ", "_") + ".mp4");
-        if (defaultVideo.isFile()) {
-            loadVideo(defaultVideo);
-        } else {
-            videoPlaceholder.setText("Choose a video file to play " + movie.title);
-            Platform.runLater(() -> chooseVideoFile());
+        // Ask on the first trailer request only; cancelling leaves the key unset so it can be retried.
+        if (tmdbApiKey == null) {
+            tmdbApiKey = requestTmdbApiKey();
+            if (tmdbApiKey == null) {
+                videoPlaceholder.setText("A TMDB API key is required to fetch movie trailers.");
+                return;
+            }
         }
+        fetchTrailer(movie, tmdbApiKey);
     }
 
-    private void chooseVideoFile() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Choose a video");
-        fileChooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("Video files", "*.mp4", "*.m4v", "*.mov", "*.mkv"));
-        File videoFile = fileChooser.showOpenDialog(mainStage);
-        if (videoFile != null) {
-            loadVideo(videoFile);
-        }
+    private String requestTmdbApiKey() {
+        // A PasswordField masks entry; the value is returned to the caller but is not persisted.
+        Dialog<String> dialog = new Dialog<>();
+        dialog.initOwner(mainStage);
+        dialog.setTitle("TMDB API Key");
+        dialog.setHeaderText("Enter your TMDB API key or Read Access Token");
+
+        PasswordField apiKeyField = new PasswordField();
+        apiKeyField.setPromptText("TMDB API Key (v3) or Read Access Token (v4)");
+        VBox content = new VBox(10,
+                new Label("Use the API Key (v3) or API Read Access Token (v4) from your TMDB account. "
+                        + "It stays in memory for this session and is not saved."),
+                apiKeyField);
+        content.setPrefWidth(420);
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.setResultConverter(button -> button == ButtonType.OK
+                ? apiKeyField.getText().trim() : null);
+
+        return dialog.showAndWait().filter(key -> !key.isEmpty()).orElse(null);
     }
 
-    private void loadVideo(File file) {
-        try {
-            disposeMediaPlayer();
-            playbackErrorLabel.setVisible(false);
-            videoPlaceholder.setVisible(true);
-            timeLabel.setText("00:00 / 00:00");
-            progressSlider.setValue(0);
+    private void fetchTrailer(Movie movie, String apiKey) {
+        long requestId = ++trailerRequestId;
+        // Keep network latency off the JavaFX thread; ignore results for a player that has since changed.
+        CompletableFuture.supplyAsync(() -> lookupTrailer(movie.title, apiKey))
+                .whenComplete((youtubeKey, error) -> Platform.runLater(() -> {
+                    if (requestId != trailerRequestId) {
+                        return;
+                    }
+                    if (error != null) {
+                        Throwable cause = error instanceof CompletionException
+                                ? error.getCause() : error;
+                        // Clear only the rejected key. The next trailer attempt will prompt for a replacement.
+                        if (cause instanceof InvalidTmdbApiKeyException
+                                && apiKey.equals(tmdbApiKey)) {
+                            tmdbApiKey = null;
+                        }
+                        showPlaybackError(cause.getMessage());
+                        return;
+                    }
+                    videoPlaceholder.setVisible(false);
+                    playbackErrorLabel.setVisible(false);
+                    currentYoutubeKey = youtubeKey;
+                    openTrailerButton.setDisable(false);
+                    trailerWebView.setVisible(true);
+                    // Only the trailer ID goes to YouTube; the TMDB API key is not included in this URL.
+                    trailerWebView.getEngine().load(
+                            "https://www.youtube-nocookie.com/embed/" + youtubeKey
+                                    + "?autoplay=1&rel=0");
+                }));
+    }
 
-            Media media = new Media(file.toURI().toString());
-            mediaPlayer = new MediaPlayer(media);
-            mediaView = new MediaView(mediaPlayer);
-            mediaView.setPreserveRatio(true);
-            mediaView.fitWidthProperty().bind(videoContainer.widthProperty());
-            mediaView.fitHeightProperty().bind(videoContainer.heightProperty());
-            // Add video beneath the placeholder and controls, which remain layered above it.
-            videoContainer.getChildren().add(0, mediaView);
+    private String lookupTrailer(String title, String apiKey) {
+        // TMDB search resolves the app's display title to an ID, then its videos endpoint supplies trailer IDs.
+        String encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8);
+        JsonObject searchResponse = getTmdbJson(
+                "https://api.themoviedb.org/3/search/movie?query=" + encodedTitle, apiKey);
+        JsonArray results = searchResponse.has("results")
+                ? searchResponse.getAsJsonArray("results") : new JsonArray();
+        if (results.size() == 0) {
+            throw new TrailerLookupException("TMDB did not find a movie titled \"" + title + "\".");
+        }
 
-            MediaPlayer activePlayer = mediaPlayer;
-            activePlayer.volumeProperty().set(volumeSlider.getValue() / 100);
-            // Keep the seek bar and displayed time synchronized with the active media.
-            activePlayer.currentTimeProperty().addListener((obs, oldTime, newTime) -> {
-                Duration total = activePlayer.getTotalDuration();
-                if (!progressSlider.isValueChanging() && isKnownDuration(total)) {
-                    progressSlider.setValue(newTime.toMillis() / total.toMillis() * 100);
+        JsonObject selectedMovie = results.get(0).getAsJsonObject();
+        for (JsonElement result : results) {
+            if (result.isJsonObject()
+                    && title.equalsIgnoreCase(jsonString(result.getAsJsonObject(), "title"))) {
+                selectedMovie = result.getAsJsonObject();
+                break;
+            }
+        }
+        if (!selectedMovie.has("id")) {
+            throw new TrailerLookupException("TMDB returned a movie without an ID.");
+        }
+        String movieId = selectedMovie.get("id").getAsString();
+        JsonObject videosResponse = getTmdbJson(
+                "https://api.themoviedb.org/3/movie/" + movieId + "/videos", apiKey);
+        JsonArray videos = videosResponse.has("results")
+                ? videosResponse.getAsJsonArray("results") : new JsonArray();
+        JsonObject firstTrailer = null;
+        for (JsonElement element : videos) {
+            if (!element.isJsonObject()) {
+                continue;
+            }
+            JsonObject video = element.getAsJsonObject();
+            if ("YouTube".equalsIgnoreCase(jsonString(video, "site"))
+                    && "Trailer".equalsIgnoreCase(jsonString(video, "type"))
+                    && !jsonString(video, "key").isEmpty()) {
+                if (firstTrailer == null) {
+                    firstTrailer = video;
                 }
-                updateTimeLabel(newTime, total);
-            });
-            activePlayer.totalDurationProperty().addListener((obs, oldDuration, newDuration) -> {
-                updateTimeLabel(activePlayer.getCurrentTime(), newDuration);
-            });
-            activePlayer.setOnReady(() -> {
-                videoPlaceholder.setVisible(false);
-                activePlayer.play();
-                updatePlayPauseIcon();
-            });
-            activePlayer.setOnError(() -> showPlaybackError(activePlayer.getError() == null
-                    ? "Unable to play this video." : activePlayer.getError().getMessage()));
-            media.setOnError(() -> showPlaybackError(media.getError() == null
-                    ? "Unable to load this video." : media.getError().getMessage()));
-            activePlayer.statusProperty().addListener((obs, oldStatus, newStatus) -> updatePlayPauseIcon());
-        } catch (Exception e) {
-            showPlaybackError("Unable to open video: " + e.getMessage());
+                if (video.has("official") && video.get("official").getAsBoolean()) {
+                    firstTrailer = video;
+                    break;
+                }
+            }
+        }
+        if (firstTrailer == null) {
+            throw new TrailerLookupException("TMDB has no YouTube trailer available for " + title + ".");
+        }
+
+        String youtubeKey = jsonString(firstTrailer, "key");
+        if (!youtubeKey.matches("[A-Za-z0-9_-]+")) {
+            throw new TrailerLookupException("TMDB returned an invalid YouTube trailer ID.");
+        }
+        // TMDB provides a YouTube video ID, not a direct media URL; the player embeds it below.
+        return youtubeKey;
+    }
+
+    private JsonObject getTmdbJson(String url, String apiKey) {
+        try {
+            // TMDB accepts either a v3 key as a query parameter or a v4 token as a Bearer credential.
+            boolean readAccessToken = isReadAccessToken(apiKey);
+            String requestUrl = readAccessToken ? url
+                    : url + (url.contains("?") ? "&" : "?")
+                            + "api_key=" + URLEncoder.encode(apiKey, StandardCharsets.UTF_8);
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(URI.create(requestUrl))
+                    .timeout(java.time.Duration.ofSeconds(20))
+                    .header("Accept", "application/json")
+                    .GET();
+            if (readAccessToken) {
+                requestBuilder.header("Authorization", "Bearer " + apiKey);
+            }
+            HttpResponse<String> response = HTTP_CLIENT.send(
+                    requestBuilder.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (response.statusCode() == 401) {
+                String detail = tmdbErrorDetail(response.body());
+                throw new InvalidTmdbApiKeyException(response.statusCode(), detail);
+            }
+            if (response.statusCode() == 403) {
+                String detail = tmdbErrorDetail(response.body());
+                throw new TrailerLookupException("TMDB denied this request (HTTP 403)"
+                        + (detail.isEmpty() ? "." : ": " + detail));
+            }
+            if (response.statusCode() != 200) {
+                String detail = tmdbErrorDetail(response.body());
+                throw new TrailerLookupException(
+                        "TMDB request failed (HTTP " + response.statusCode() + ")"
+                                + (detail.isEmpty() ? "." : ": " + detail));
+            }
+            return JsonParser.parseString(response.body()).getAsJsonObject();
+        } catch (InvalidTmdbApiKeyException | TrailerLookupException e) {
+            throw e;
+        } catch (IOException e) {
+            throw new TrailerLookupException("Could not connect to TMDB: " + e.getMessage(), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new TrailerLookupException("The TMDB request was interrupted.", e);
+        } catch (RuntimeException e) {
+            throw new TrailerLookupException("TMDB returned an unreadable response.", e);
         }
     }
 
-    private void disposeMediaPlayer() {
-        // Release the native media resources before leaving or replacing the player view.
-        if (mediaPlayer != null) {
-            mediaPlayer.stop();
-            mediaPlayer.dispose();
-            mediaPlayer = null;
+    private static boolean isReadAccessToken(String credential) {
+        return credential.split("\\.", -1).length == 3;
+    }
+
+    private static String tmdbErrorDetail(String responseBody) {
+        try {
+            JsonObject response = JsonParser.parseString(responseBody).getAsJsonObject();
+            return response.has("status_message")
+                    ? response.get("status_message").getAsString() : "";
+        } catch (RuntimeException e) {
+            return "";
         }
-        if (mediaView != null) {
-            mediaView.fitWidthProperty().unbind();
-            mediaView.fitHeightProperty().unbind();
-            videoContainer.getChildren().remove(mediaView);
-            mediaView = null;
+    }
+
+    private static String jsonString(JsonObject object, String property) {
+        JsonElement value = object.get(property);
+        return value == null || value.isJsonNull() ? "" : value.getAsString();
+    }
+
+    private void openTrailerInBrowser() {
+        if (currentYoutubeKey == null) {
+            return;
         }
-        if (playPauseButton != null) {
-            updatePlayPauseIcon();
-        }
+        getHostServices().showDocument("https://www.youtube.com/watch?v=" + currentYoutubeKey);
     }
 
     private void closePlayer() {
-        disposeMediaPlayer();
+        trailerRequestId++;
+        trailerWebView.getEngine().load("about:blank");
+        trailerWebView.setVisible(false);
+        currentYoutubeKey = null;
+        openTrailerButton.setDisable(true);
         if (mainStage.isFullScreen()) {
             mainStage.setFullScreen(false);
         }
@@ -960,94 +1042,32 @@ public class App extends Application {
 
     private void showPlaybackError(String message) {
         playbackErrorLabel.setText(message == null || message.isEmpty()
-                ? "Unable to play this video." : message);
+                ? "Unable to load this trailer." : message);
         playbackErrorLabel.setVisible(true);
         videoPlaceholder.setVisible(false);
-    }
-
-    private void togglePlayback() {
-        if (mediaPlayer == null) {
-            chooseVideoFile();
-        } else if (mediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
-            mediaPlayer.pause();
-        } else {
-            mediaPlayer.play();
-        }
-        updatePlayPauseIcon();
-    }
-
-    private void updatePlayPauseIcon() {
-        boolean playing = mediaPlayer != null && mediaPlayer.getStatus() == MediaPlayer.Status.PLAYING;
-        playPauseButton.setGraphic(createPlayerIcon(playing
-                ? "M6 5h4v14H6z M14 5h4v14h-4z"
-                : "M8 5v14l11-7z"));
-        playPauseButton.setTooltip(new Tooltip(playing ? "Pause" : "Play"));
-        playPauseButton.setAccessibleText(playing ? "Pause" : "Play");
-    }
-
-    private void seekBy(double seconds) {
-        if (mediaPlayer != null && isKnownDuration(mediaPlayer.getTotalDuration())) {
-            Duration currentTime = mediaPlayer.getCurrentTime();
-            if (seconds < 0 && currentTime.toSeconds() <= Math.abs(seconds)) {
-                return;
-            }
-            seekTo(currentTime.add(Duration.seconds(seconds)));
-        }
-    }
-
-    private void seekToSliderPosition() {
-        if (mediaPlayer != null && isKnownDuration(mediaPlayer.getTotalDuration())) {
-            seekTo(mediaPlayer.getTotalDuration().multiply(progressSlider.getValue() / 100));
-        }
-    }
-
-    private void seekTo(Duration position) {
-        Duration total = mediaPlayer.getTotalDuration();
-        double clampedMillis = Math.max(0, Math.min(position.toMillis(), total.toMillis()));
-        mediaPlayer.seek(Duration.millis(clampedMillis));
-    }
-
-    private void toggleMute() {
-        if (muted) {
-            double restoredVolume = previousVolume > 0 ? previousVolume : 0.5;
-            volumeSlider.setValue(restoredVolume * 100);
-            muted = false;
-        } else {
-            previousVolume = volumeSlider.getValue() > 0 ? volumeSlider.getValue() / 100 : previousVolume;
-            volumeSlider.setValue(0);
-            muted = true;
-        }
-        updateMuteIcon();
-    }
-
-    private void updateMuteIcon() {
-        muteButton.setGraphic(createPlayerIcon(muted
-                ? "M3 9v6h4l5 5V4L7 9H3z M16 9l1.4-1.4 2.1 2.1 2.1-2.1L23 9l-2.1 2.1 2.1 2.1-1.4 1.4-2.1-2.1-2.1 2.1-1.4-1.4 2.1-2.1z"
-                : "M3 9v6h4l5 5V4L7 9H3z M16 9.5a4 4 0 0 1 0 5 M14 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z"));
-        muteButton.setTooltip(new Tooltip(muted ? "Unmute" : "Mute"));
-        muteButton.setAccessibleText(muted ? "Unmute" : "Mute");
+        trailerWebView.setVisible(false);
     }
 
     private void toggleFullscreen() {
         mainStage.setFullScreen(!mainStage.isFullScreen());
     }
 
-    private boolean isKnownDuration(Duration duration) {
-        return duration != null && !duration.isUnknown() && !duration.isIndefinite()
-                && duration.toMillis() > 0;
-    }
-
-    private void updateTimeLabel(Duration current, Duration total) {
-        timeLabel.setText(formatTime(current) + " / " + formatTime(total));
-    }
-
-    private String formatTime(Duration duration) {
-        if (duration == null || duration.isUnknown() || duration.isIndefinite()) {
-            return "00:00";
+    private static class TrailerLookupException extends RuntimeException {
+        TrailerLookupException(String message) {
+            super(message);
         }
-        int minutes = (int) duration.toMinutes();
-        int seconds = (int) duration.toSeconds() % 60;
-        return String.format("%02d:%02d", minutes, seconds);
+
+        TrailerLookupException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    private static class InvalidTmdbApiKeyException extends RuntimeException {
+        InvalidTmdbApiKeyException(int statusCode, String detail) {
+            super("TMDB rejected the credential (HTTP " + statusCode + ")"
+                    + (detail == null || detail.isEmpty() ? "." : ": " + detail)
+                    + " Use the API Key (v3) or API Read Access Token (v4) from TMDB.");
+        }
     }
 
     // =========================================================================
@@ -1115,7 +1135,7 @@ public class App extends Application {
         HBox buttonBox = new HBox(20);
         buttonBox.setPadding(new Insets(20, 0, 0, 0));
 
-        Button playBtn = createPrimaryButton("Play Movie");
+        Button playBtn = createPrimaryButton("Play Trailer");
         playBtn.setPrefWidth(200);
         playBtn.setOnAction(e -> openPlayer(movie));
 
