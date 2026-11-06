@@ -63,8 +63,9 @@
 
 .sidebar-logo-letter {
     -fx-fill: #0B1A26;
-    -fx-font-size: 24px;
+    -fx-font-size: 17px;
     -fx-font-weight: 900;
+    -fx-letter-spacing: 1px;
 }
 
 .logo-text {
@@ -142,6 +143,48 @@
     -fx-font-size: 14px;
     -fx-font-weight: 600;
     -fx-fill: #FFFFFF;
+}
+
+.profile-button {
+    -fx-background-color: rgba(255, 255, 255, 0.04);
+    -fx-background-radius: 22;
+    -fx-border-color: rgba(0, 210, 255, 0.18);
+    -fx-border-radius: 22;
+    -fx-padding: 5 14 5 7;
+    -fx-cursor: hand;
+}
+
+.profile-button:hover {
+    -fx-background-color: rgba(0, 210, 255, 0.1);
+    -fx-border-color: #00D2FF;
+}
+
+.profile-name {
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+}
+
+.profile-membership {
+    -fx-text-fill: #8B9EB0;
+    -fx-font-size: 11px;
+}
+
+.notification-item {
+    -fx-background-color: #14283A;
+    -fx-background-radius: 8;
+    -fx-padding: 10 12;
+}
+
+.notification-item-title {
+    -fx-text-fill: #FCA311;
+    -fx-font-size: 14px;
+    -fx-font-weight: 700;
+}
+
+.notification-item-description {
+    -fx-text-fill: #D1D5DB;
+    -fx-font-size: 12px;
 }
 
 /* --------------------------------------------------------------------------
@@ -396,28 +439,56 @@
 /* --------------------------------------------------------------------------
    Movie Details Screen
    -------------------------------------------------------------------------- */
+.movie-details-screen {
+    -fx-background-color: #0B1A26;
+}
+
+.movie-detail-actions {
+    -fx-padding: 0 0 6 0;
+}
+
+.movie-detail-hero {
+    -fx-background-color: linear-gradient(to bottom right, #142B3A, #0E1A27);
+    -fx-background-radius: 20;
+    -fx-border-color: rgba(0, 210, 255, 0.16);
+    -fx-border-radius: 20;
+    -fx-border-width: 1;
+}
+
 .detail-title {
     -fx-font-size: 52px;
     -fx-font-weight: 900;
-    -fx-fill: #FFFFFF;
+    -fx-text-fill: #FFFFFF;
 }
 
 .detail-genre {
-    -fx-fill: #FCA311;
+    -fx-text-fill: #FCA311;
     -fx-font-size: 16px;
     -fx-font-weight: 700;
 }
 
 .detail-meta {
-    -fx-fill: #E5E5E5;
+    -fx-text-fill: #E5E5E5;
     -fx-font-size: 16px;
     -fx-font-weight: 600;
 }
 
 .detail-synopsis {
-    -fx-fill: #D1D5DB;
+    -fx-text-fill: #D1D5DB;
     -fx-font-size: 17px;
     -fx-line-spacing: 6;
+}
+
+.detail-section-heading {
+    -fx-text-fill: #FCA311;
+    -fx-font-size: 20px;
+    -fx-font-weight: 800;
+}
+
+.detail-metadata-status {
+    -fx-text-fill: #8B9EB0;
+    -fx-font-size: 13px;
+    -fx-wrap-text: true;
 }
 
 /* --------------------------------------------------------------------------

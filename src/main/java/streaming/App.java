@@ -9,7 +9,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
@@ -17,7 +19,6 @@ import javafx.animation.FadeTransition;
 import javafx.animation.ScaleTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
@@ -25,6 +26,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
@@ -68,8 +70,6 @@ import com.google.gson.JsonParser;
 public class App extends Application {
 
     // --- Theme Constants ---
-    private static final double PLAYER_WINDOW_WIDTH = 800;
-    private static final double PLAYER_WINDOW_HEIGHT = 520;
     private static final String TEAL_BG = "#0B1A26";
     private static final String TEAL_PANEL = "#132A38";
     private static final String CYAN_ACCENT = "#00D2FF";
@@ -86,9 +86,20 @@ public class App extends Application {
     private VBox homeScreen;
     private VBox movieDetailsScreen;
     private VBox movieDetailsContainer;
+    private Label detailOverviewLabel;
+    private Label detailGenresLabel;
+    private Label detailReleaseLabel;
+    private Label detailRuntimeLabel;
+    private Label detailRatingLabel;
+    private Label detailCastLabel;
+    private Label detailDirectorLabel;
+    private Label detailLanguagesLabel;
+    private Label detailMetadataStatusLabel;
+    private long detailRequestId;
     private VBox watchlistScreen;
     private VBox categoriesScreen;
     private VBox settingsScreen;
+    private VBox notificationsScreen;
     private VBox tvShowsScreen;
     private VBox moviesScreen;
     private BorderPane mediaPlayerScreen;
@@ -98,6 +109,7 @@ public class App extends Application {
     private final List<Movie> trendingMovies = new ArrayList<>();
     private final List<Movie> recentlyAdded = new ArrayList<>();
     private final List<Movie> popularMovies = new ArrayList<>();
+    private final Map<String, MovieMetadata> movieMetadataCache = new HashMap<>();
 
     // --- Media Player State ---
     private Stage mainStage;
@@ -191,6 +203,7 @@ public class App extends Application {
         createWatchlistScreen();
         createCategoriesScreen();
         createSettingsScreen();
+        createNotificationsScreen();
         createTVShowsScreen();
         createMoviesScreen();
         createMediaPlayerScreen();
@@ -203,9 +216,9 @@ public class App extends Application {
         Scene scene = new Scene(root, windowWidth, windowHeight);
         scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
 
-        // Supply several sizes so Windows can choose a crisp title-bar/taskbar icon.
+        stage.setTitle("StreamFlix - Premium Stream");
+        // The title is text; Stage icons supply the logo shown beside it in the native title bar.
         stage.getIcons().setAll(createWindowIcon(16), createWindowIcon(32), createWindowIcon(64));
-        stage.setTitle("StreamFlix - Premium Streaming");
         stage.setScene(scene);
         stage.setMinWidth(Math.min(800, windowWidth));
         stage.setMinHeight(Math.min(500, windowHeight));
@@ -215,18 +228,27 @@ public class App extends Application {
                 stage.getIcons().setAll(createWindowIcon(16), createWindowIcon(32), createWindowIcon(64)));
     }
 
-    // Draw the same cyan-circle "S" mark used by the navigation rail as the window icon.
+    // Draw the same cyan-and-gold SF monogram used by the navigation rail.
     private Image createWindowIcon(int size) {
         Canvas iconCanvas = new Canvas(size, size);
         GraphicsContext graphics = iconCanvas.getGraphicsContext2D();
         graphics.setFill(Color.web(CYAN_ACCENT));
-        double inset = Math.max(1, size / 32.0);
-        graphics.fillOval(inset, inset, size - inset * 2, size - inset * 2);
+        double inset = Math.max(1, size * 0.04);
+        graphics.fillRoundRect(inset, inset, size - inset * 2, size - inset * 2,
+                size * 0.3, size * 0.3);
         graphics.setFill(Color.web(TEAL_BG));
-        graphics.setFont(Font.font("Segoe UI", FontWeight.BOLD, size * 0.68));
+        double innerInset = size * 0.12;
+        graphics.fillRoundRect(innerInset, innerInset, size - innerInset * 2,
+                size - innerInset * 2, size * 0.22, size * 0.22);
+        graphics.setFill(Color.WHITE);
+        graphics.setFont(Font.font("Segoe UI", FontWeight.EXTRA_BOLD, size * 0.38));
         graphics.setTextAlign(TextAlignment.CENTER);
         graphics.setTextBaseline(VPos.CENTER);
-        graphics.fillText("S", size / 2.0, size / 2.0);
+        graphics.fillText("SF", size / 2.0, size * 0.46);
+        graphics.setStroke(Color.web(GOLD_ACCENT));
+        graphics.setLineWidth(Math.max(1, size * 0.055));
+        graphics.setLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+        graphics.strokeLine(size * 0.32, size * 0.76, size * 0.68, size * 0.76);
 
         WritableImage icon = new WritableImage(size, size);
         iconCanvas.snapshot(null, icon);
@@ -244,11 +266,23 @@ public class App extends Application {
         side.setMaxWidth(86);
         side.setPadding(new Insets(22, 14, 22, 14));
 
-        // Keep the brand mark compact to match the reference's icon navigation rail.
-        StackPane logoIcon = new StackPane(new Circle(22, Color.web(CYAN_ACCENT)));
-        Text logoLetter = new Text("S");
+        StackPane logoIcon = new StackPane();
+        Rectangle logoTile = new Rectangle(48, 48, Color.web(CYAN_ACCENT));
+        logoTile.setArcWidth(16);
+        logoTile.setArcHeight(16);
+        logoTile.setStroke(Color.web(GOLD_ACCENT));
+        logoTile.setStrokeWidth(1.5);
+        logoTile.setEffect(new DropShadow(12, Color.web(CYAN_ACCENT, 0.3)));
+        logoIcon.getChildren().add(logoTile);
+        Text logoLetter = new Text("SF");
         logoLetter.getStyleClass().add("sidebar-logo-letter");
         logoIcon.getChildren().add(logoLetter);
+        Rectangle logoAccent = new Rectangle(18, 2.5, Color.web(GOLD_ACCENT));
+        logoAccent.setArcWidth(3);
+        logoAccent.setArcHeight(3);
+        StackPane.setAlignment(logoAccent, Pos.BOTTOM_CENTER);
+        StackPane.setMargin(logoAccent, new Insets(0, 0, 9, 0));
+        logoIcon.getChildren().add(logoAccent);
         Tooltip.install(logoIcon, new Tooltip("StreamFlix"));
         logoIcon.setPadding(new Insets(0, 0, 24, 0));
 
@@ -279,22 +313,7 @@ public class App extends Application {
                 createNavItem(btnWatchlist, "Watchlist"),
                 createNavItem(btnSettings, "Settings"));
 
-        Region spacer = new Region();
-        VBox.setVgrow(spacer, Priority.ALWAYS);
-
-        // Keep the profile affordance visible at the foot of the rail.
-        StackPane userBox = new StackPane();
-        userBox.getStyleClass().add("user-box");
-        Circle avatar = new Circle(18, Color.web(TEAL_PANEL));
-        avatar.setStroke(Color.web(CYAN_ACCENT));
-        avatar.setStrokeWidth(2);
-        Text avatarInitials = new Text("A");
-        avatarInitials.setFill(Color.WHITE);
-        avatarInitials.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-        userBox.getChildren().addAll(avatar, avatarInitials);
-        Tooltip.install(userBox, new Tooltip("Alexander - Premium Member"));
-        userBox.setAccessibleText("Alexander, Premium Member");
-        side.getChildren().addAll(logoIcon, navLinks, spacer, userBox);
+        side.getChildren().addAll(logoIcon, navLinks);
         return side;
     }
 
@@ -422,13 +441,112 @@ public class App extends Application {
         notifBtn.getStyleClass().add("notification-button");
         notifBtn.setGraphic(createPlayerIcon("M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9zm-8 12h4a2 2 0 0 1-4 0z"));
         notifBtn.setTooltip(new Tooltip("Notifications"));
+        notifBtn.setAccessibleText("Notifications: updates and service terms");
+        notifBtn.setOnAction(e -> showNotifications());
 
-        HBox actions = new HBox(12, notifBtn);
+        Button profileButton = new Button();
+        profileButton.getStyleClass().add("profile-button");
+        Circle profileAvatar = new Circle(17, Color.web(TEAL_PANEL));
+        profileAvatar.setStroke(Color.web(CYAN_ACCENT));
+        profileAvatar.setStrokeWidth(1.5);
+        Text avatarInitial = new Text("A");
+        avatarInitial.setFill(Color.WHITE);
+        avatarInitial.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+        StackPane avatar = new StackPane(profileAvatar, avatarInitial);
+        Label profileName = new Label("Alexander");
+        profileName.getStyleClass().add("profile-name");
+        Label membership = new Label("Premium Member");
+        membership.getStyleClass().add("profile-membership");
+        VBox profileLabels = new VBox(2, profileName, membership);
+        profileLabels.getStyleClass().add("profile-labels");
+        HBox profileGraphic = new HBox(10, avatar, profileLabels);
+        profileGraphic.setAlignment(Pos.CENTER_LEFT);
+        profileButton.setGraphic(profileGraphic);
+        profileButton.setTooltip(new Tooltip("Profile: Alexander"));
+        profileButton.setAccessibleText("Profile, Alexander, Premium Member");
+        profileButton.setOnAction(e -> showProfileInfo());
+
+        HBox actions = new HBox(12, notifBtn, profileButton);
         actions.setAlignment(Pos.CENTER_RIGHT);
         StackPane.setAlignment(actions, Pos.CENTER_RIGHT);
         StackPane.setAlignment(searchArea, Pos.CENTER);
         topBar.getChildren().addAll(searchArea, actions);
         return topBar;
+    }
+
+    private void showNotifications() {
+        // Reuse the app's main content area so notices appear as a normal screen, not a popup.
+        root.setLeft(sidebar);
+        contentArea.getChildren().setAll(notificationsScreen);
+        mainStage.setTitle("StreamFlix - Updates & Terms");
+    }
+
+    private void createNotificationsScreen() {
+        // Keep service updates and terms in a scrollable screen that follows the Settings layout.
+        notificationsScreen = new VBox(0);
+        notificationsScreen.getStyleClass().add("screen");
+
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.getStyleClass().add("scroll-pane");
+        scrollPane.setFitToWidth(true);
+
+        VBox content = new VBox(24);
+        content.setPadding(new Insets(40, 50, 60, 50));
+        Label title = new Label("Updates & Terms");
+        title.getStyleClass().add("screen-title");
+        Label intro = new Label("Service notices and information about the services used by StreamFlix.");
+        intro.getStyleClass().add("detail-synopsis");
+        intro.setWrapText(true);
+
+        VBox updates = new VBox(14);
+        // These notices describe the external services and credential handling used by the app.
+        updates.getChildren().addAll(
+                notificationItem("Movie details",
+                        "Cast, directors, languages, and ratings are provided by TMDB."),
+                notificationItem("Trailer playback",
+                        "Trailers are embedded from YouTube. If playback is unavailable in the app, use the external-link button in the player."),
+                notificationItem("Your TMDB credential",
+                        "Your API key or read token stays in memory for this app session and is not saved."),
+                notificationItem("Terms of service",
+                        "This demo is provided under the repository's MIT License. TMDB and YouTube services are subject to their own terms."));
+
+        Label termsHeading = new Label("External service terms");
+        termsHeading.getStyleClass().add("detail-section-heading");
+        // Open provider terms in the user's default browser rather than embedding third-party pages.
+        Hyperlink tmdbTerms = new Hyperlink("TMDB Terms of Use");
+        tmdbTerms.setOnAction(e -> getHostServices().showDocument(
+                "https://www.themoviedb.org/terms-of-use"));
+        Hyperlink youtubeTerms = new Hyperlink("YouTube Terms of Service");
+        youtubeTerms.setOnAction(e -> getHostServices().showDocument(
+                "https://www.youtube.com/t/terms"));
+        HBox termsLinks = new HBox(16, tmdbTerms, youtubeTerms);
+
+        content.getChildren().addAll(title, intro, updates, termsHeading, termsLinks);
+        scrollPane.setContent(content);
+        notificationsScreen.getChildren().add(scrollPane);
+    }
+
+    private VBox notificationItem(String heading, String message) {
+        Label title = new Label(heading);
+        title.getStyleClass().add("notification-item-title");
+        Label description = new Label(message);
+        description.getStyleClass().add("notification-item-description");
+        description.setWrapText(true);
+        VBox item = new VBox(4, title, description);
+        item.getStyleClass().add("notification-item");
+        return item;
+    }
+
+    private void showProfileInfo() {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.initOwner(mainStage);
+        dialog.setTitle("Profile");
+        dialog.setHeaderText("Alexander");
+        Label membership = new Label("Premium Member");
+        membership.getStyleClass().add("profile-membership");
+        dialog.getDialogPane().setContent(membership);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.showAndWait();
     }
 
     private void updateSearchResults(String query, VBox results, TextField searchField) {
@@ -765,24 +883,11 @@ public class App extends Application {
         mediaPlayerScreen.setCenter(videoContainer);
         mediaPlayerScreen.setBottom(playerFooter);
         mediaPlayerScreen.setMinSize(0, 0);
-        mediaPlayerScreen.setMaxSize(PLAYER_WINDOW_WIDTH, PLAYER_WINDOW_HEIGHT);
-        mediaPlayerScreen.prefWidthProperty().bind(Bindings.min(
-                contentArea.widthProperty(), PLAYER_WINDOW_WIDTH));
-        mediaPlayerScreen.prefHeightProperty().bind(Bindings.min(
-                contentArea.heightProperty(), PLAYER_WINDOW_HEIGHT));
+        mediaPlayerScreen.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        mediaPlayerScreen.prefWidthProperty().bind(contentArea.widthProperty());
+        mediaPlayerScreen.prefHeightProperty().bind(contentArea.heightProperty());
 
         mainStage.fullScreenProperty().addListener((obs, wasFullScreen, isFullScreen) -> {
-            if (isFullScreen) {
-                mediaPlayerScreen.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-                mediaPlayerScreen.prefWidthProperty().bind(contentArea.widthProperty());
-                mediaPlayerScreen.prefHeightProperty().bind(contentArea.heightProperty());
-            } else {
-                mediaPlayerScreen.setMaxSize(PLAYER_WINDOW_WIDTH, PLAYER_WINDOW_HEIGHT);
-                mediaPlayerScreen.prefWidthProperty().bind(Bindings.min(
-                        contentArea.widthProperty(), PLAYER_WINDOW_WIDTH));
-                mediaPlayerScreen.prefHeightProperty().bind(Bindings.min(
-                        contentArea.heightProperty(), PLAYER_WINDOW_HEIGHT));
-            }
             fullscreenButton.setGraphic(createPlayerIcon(isFullScreen
                     ? "M5 5h2v3h3v2H5z M17 5v5h-5V8h3V5z M5 14h5v5H8v-3H5z M14 14h5v5h-2v-3h-3z"
                     : "M5 5h5v2H7v3H5z M14 5h5v5h-2V7h-3z M5 14h2v3h3v2H5z M17 14h2v5h-5v-2h3z"));
@@ -820,6 +925,7 @@ public class App extends Application {
     }
 
     private void openPlayer(Movie movie) {
+        root.setLeft(null);
         previousWindowTitle = mainStage.getTitle();
         trailerRequestId++;
         trailerWebView.getEngine().load("about:blank");
@@ -900,28 +1006,7 @@ public class App extends Application {
     }
 
     private String lookupTrailer(String title, String apiKey) {
-        // TMDB search resolves the app's display title to an ID, then its videos endpoint supplies trailer IDs.
-        String encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8);
-        JsonObject searchResponse = getTmdbJson(
-                "https://api.themoviedb.org/3/search/movie?query=" + encodedTitle, apiKey);
-        JsonArray results = searchResponse.has("results")
-                ? searchResponse.getAsJsonArray("results") : new JsonArray();
-        if (results.size() == 0) {
-            throw new TrailerLookupException("TMDB did not find a movie titled \"" + title + "\".");
-        }
-
-        JsonObject selectedMovie = results.get(0).getAsJsonObject();
-        for (JsonElement result : results) {
-            if (result.isJsonObject()
-                    && title.equalsIgnoreCase(jsonString(result.getAsJsonObject(), "title"))) {
-                selectedMovie = result.getAsJsonObject();
-                break;
-            }
-        }
-        if (!selectedMovie.has("id")) {
-            throw new TrailerLookupException("TMDB returned a movie without an ID.");
-        }
-        String movieId = selectedMovie.get("id").getAsString();
+        String movieId = findTmdbMovieId(title, apiKey);
         JsonObject videosResponse = getTmdbJson(
                 "https://api.themoviedb.org/3/movie/" + movieId + "/videos", apiKey);
         JsonArray videos = videosResponse.has("results")
@@ -954,6 +1039,91 @@ public class App extends Application {
         }
         // TMDB provides a YouTube video ID, not a direct media URL; the player embeds it below.
         return youtubeKey;
+    }
+
+    private MovieMetadata lookupMovieMetadata(String title, String apiKey) {
+        String movieId = findTmdbMovieId(title, apiKey);
+        JsonObject details = getTmdbJson(
+                "https://api.themoviedb.org/3/movie/" + movieId + "?append_to_response=credits",
+                apiKey);
+        JsonObject credits = details.has("credits") && details.get("credits").isJsonObject()
+                ? details.getAsJsonObject("credits") : new JsonObject();
+
+        return new MovieMetadata(
+                jsonString(details, "overview"),
+                joinJsonValues(credits, "cast", "name", 6),
+                joinCrewDirectors(credits),
+                joinJsonValues(details, "spoken_languages", "name", 0),
+                joinJsonValues(details, "genres", "name", 0),
+                jsonString(details, "release_date"),
+                details.has("runtime") && !details.get("runtime").isJsonNull()
+                        ? details.get("runtime").getAsString() + " min" : "",
+                details.has("vote_average") && !details.get("vote_average").isJsonNull()
+                        ? String.format(java.util.Locale.ROOT, "%.1f / 10",
+                                details.get("vote_average").getAsDouble()) : "");
+    }
+
+    private String findTmdbMovieId(String title, String apiKey) {
+        String encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8);
+        JsonObject searchResponse = getTmdbJson(
+                "https://api.themoviedb.org/3/search/movie?query=" + encodedTitle, apiKey);
+        JsonArray results = searchResponse.has("results")
+                ? searchResponse.getAsJsonArray("results") : new JsonArray();
+        if (results.size() == 0) {
+            throw new TrailerLookupException("TMDB did not find a movie titled \"" + title + "\".");
+        }
+
+        JsonObject selectedMovie = results.get(0).getAsJsonObject();
+        for (JsonElement result : results) {
+            if (result.isJsonObject()
+                    && title.equalsIgnoreCase(jsonString(result.getAsJsonObject(), "title"))) {
+                selectedMovie = result.getAsJsonObject();
+                break;
+            }
+        }
+        if (!selectedMovie.has("id")) {
+            throw new TrailerLookupException("TMDB returned a movie without an ID.");
+        }
+        return selectedMovie.get("id").getAsString();
+    }
+
+    private static String joinJsonValues(JsonObject object, String arrayName,
+            String propertyName, int limit) {
+        if (!object.has(arrayName) || !object.get(arrayName).isJsonArray()) {
+            return "";
+        }
+        List<String> values = new ArrayList<>();
+        for (JsonElement element : object.getAsJsonArray(arrayName)) {
+            if (element.isJsonObject()) {
+                String value = jsonString(element.getAsJsonObject(), propertyName);
+                if (!value.isEmpty() && !values.contains(value)) {
+                    values.add(value);
+                    if (limit > 0 && values.size() == limit) {
+                        break;
+                    }
+                }
+            }
+        }
+        return String.join(", ", values);
+    }
+
+    private static String joinCrewDirectors(JsonObject credits) {
+        if (!credits.has("crew") || !credits.get("crew").isJsonArray()) {
+            return "";
+        }
+        List<String> directors = new ArrayList<>();
+        for (JsonElement element : credits.getAsJsonArray("crew")) {
+            if (element.isJsonObject()) {
+                JsonObject crewMember = element.getAsJsonObject();
+                if ("Director".equalsIgnoreCase(jsonString(crewMember, "job"))) {
+                    String name = jsonString(crewMember, "name");
+                    if (!name.isEmpty() && !directors.contains(name)) {
+                        directors.add(name);
+                    }
+                }
+            }
+        }
+        return String.join(", ", directors);
     }
 
     private JsonObject getTmdbJson(String url, String apiKey) {
@@ -1037,7 +1207,7 @@ public class App extends Application {
         }
         contentArea.getChildren().removeAll(mediaPlayerScreen, playerScrim);
         mainStage.setTitle(previousWindowTitle == null
-                ? "StreamFlix - Premium Streaming" : previousWindowTitle);
+                ? "StreamFlix - Premium Stream" : previousWindowTitle);
     }
 
     private void showPlaybackError(String message) {
@@ -1075,88 +1245,172 @@ public class App extends Application {
     // =========================================================================
     private void createMovieDetailsScreen() {
         movieDetailsScreen = new VBox(0);
-        movieDetailsScreen.getStyleClass().add("screen");
+        movieDetailsScreen.getStyleClass().add("movie-details-screen");
 
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.getStyleClass().add("scroll-pane");
         scrollPane.setFitToWidth(true);
 
-        VBox content = new VBox(30);
-        content.setPadding(new Insets(30, 50, 60, 50));
-
-        Button backBtn = createPlayerButton(
-                "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z",
-                "player-back-button", "Back to Home");
-        backBtn.setOnAction(e -> showHomeScreen());
-
-        movieDetailsContainer = new VBox(20);
-
-        content.getChildren().addAll(backBtn, movieDetailsContainer);
-        scrollPane.setContent(content);
+        movieDetailsContainer = new VBox(24);
+        movieDetailsContainer.setPadding(new Insets(30, 48, 48, 48));
+        scrollPane.setContent(movieDetailsContainer);
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
         movieDetailsScreen.getChildren().add(scrollPane);
     }
 
     private void showMovieDetails(Movie movie) {
+        root.setLeft(null);
         mainStage.setTitle("StreamFlix - " + movie.title);
         movieDetailsContainer.getChildren().clear();
 
-        HBox mainLayout = new HBox(50);
-        mainLayout.setAlignment(Pos.TOP_LEFT);
+        Button backButton = createPlayerButton(
+                "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z",
+                "player-back-button", "Back to movies");
+        backButton.setOnAction(e -> showHomeScreen());
 
-        ImageView posterImage = new ImageView(loadPoster(movie.imageUrl));
-        posterImage.setFitWidth(320);
-        posterImage.setFitHeight(480);
-        posterImage.setPreserveRatio(false);
-        Rectangle clip = new Rectangle(320, 480);
-        clip.setArcWidth(20);
-        clip.setArcHeight(20);
-        posterImage.setClip(clip);
-
-        VBox infoBox = new VBox(20);
-        infoBox.setMaxWidth(800);
-
-        Text title = new Text(movie.title);
-        title.getStyleClass().add("detail-title");
-
-        HBox metaRow = new HBox(20);
-        metaRow.setAlignment(Pos.CENTER_LEFT);
-        Text genre = new Text(movie.genre);
-        genre.getStyleClass().add("detail-genre");
-        Text duration = new Text(movie.duration);
-        duration.getStyleClass().add("detail-meta");
-        Text rating = new Text(movie.rating + "  |  " + movie.ratingScore + " / 10");
-        rating.getStyleClass().add("detail-meta");
-        metaRow.getChildren().addAll(genre, duration, rating);
-
-        Text synopsis = new Text(movie.description);
-        synopsis.getStyleClass().add("detail-synopsis");
-        synopsis.setWrappingWidth(700);
-
-        HBox buttonBox = new HBox(20);
-        buttonBox.setPadding(new Insets(20, 0, 0, 0));
-
-        Button playBtn = createPrimaryButton("Play Trailer");
-        playBtn.setPrefWidth(200);
-        playBtn.setOnAction(e -> openPlayer(movie));
-
-        Button watchlistBtn = createSecondaryButton(watchlist.contains(movie) ? "In Watchlist" : "Add to Watchlist");
-        watchlistBtn.setOnAction(e -> {
-            if (!watchlist.contains(movie)) {
-                watchlist.add(movie);
-                watchlistBtn.setText("In Watchlist");
-            } else {
+        Button playButton = createPrimaryButton("Play Trailer");
+        playButton.setOnAction(e -> openPlayer(movie));
+        Button watchlistButton = createSecondaryButton(
+                watchlist.contains(movie) ? "In Watchlist" : "Add to Watchlist");
+        watchlistButton.setOnAction(e -> {
+            if (watchlist.contains(movie)) {
                 watchlist.remove(movie);
-                watchlistBtn.setText("Add to Watchlist");
+                watchlistButton.setText("Add to Watchlist");
+            } else {
+                watchlist.add(movie);
+                watchlistButton.setText("In Watchlist");
             }
         });
 
-        buttonBox.getChildren().addAll(playBtn, watchlistBtn);
-        infoBox.getChildren().addAll(title, metaRow, synopsis, buttonBox);
+        Region headerSpacer = new Region();
+        HBox.setHgrow(headerSpacer, Priority.ALWAYS);
+        HBox pageHeader = new HBox(14, backButton, headerSpacer, playButton, watchlistButton);
+        pageHeader.setAlignment(Pos.CENTER_LEFT);
+        pageHeader.getStyleClass().add("movie-detail-actions");
 
-        mainLayout.getChildren().addAll(posterImage, infoBox);
-        movieDetailsContainer.getChildren().add(mainLayout);
+        HBox hero = new HBox(42);
+        hero.setAlignment(Pos.TOP_LEFT);
+        hero.getStyleClass().add("movie-detail-hero");
+        hero.setPadding(new Insets(30));
+        ImageView posterImage = new ImageView(loadPoster(movie.imageUrl));
+        posterImage.setFitWidth(300);
+        posterImage.setFitHeight(450);
+        posterImage.setPreserveRatio(true);
+        Rectangle clip = new Rectangle(300, 450);
+        clip.setArcWidth(20);
+        clip.setArcHeight(20);
+        posterImage.setClip(clip);
+        posterImage.setSmooth(true);
+
+        VBox infoBox = new VBox(20);
+        HBox.setHgrow(infoBox, Priority.ALWAYS);
+        Label title = new Label(movie.title);
+        title.getStyleClass().add("detail-title");
+        Label detailsMeta = new Label(movie.genre + "  |  " + movie.rating + "  |  "
+                + String.format("%.1f", movie.ratingScore) + " / 10");
+        detailsMeta.getStyleClass().add("detail-meta");
+
+        detailOverviewLabel = new Label(movie.description == null || movie.description.isEmpty()
+                ? "Loading overview..." : movie.description);
+        detailOverviewLabel.getStyleClass().add("detail-synopsis");
+        detailOverviewLabel.setWrapText(true);
+        detailOverviewLabel.setMaxWidth(Double.MAX_VALUE);
+
+        Label creditsHeading = new Label("Cast & crew");
+        creditsHeading.getStyleClass().add("detail-section-heading");
+        detailCastLabel = createDetailValue("Cast", "Loading...");
+        detailDirectorLabel = createDetailValue("Director", "Loading...");
+        detailLanguagesLabel = createDetailValue("Languages", "Loading...");
+        detailGenresLabel = createDetailValue("Genres", movie.genre);
+        detailReleaseLabel = createDetailValue("Release", "Loading...");
+        detailRuntimeLabel = createDetailValue("Runtime", movie.duration);
+        detailRatingLabel = createDetailValue("TMDB rating", "Loading...");
+        detailMetadataStatusLabel = new Label("Loading movie information from TMDB...");
+        detailMetadataStatusLabel.getStyleClass().add("detail-metadata-status");
+        detailMetadataStatusLabel.setWrapText(true);
+
+        infoBox.getChildren().addAll(title, detailsMeta, detailOverviewLabel, creditsHeading,
+                detailCastLabel, detailDirectorLabel, detailLanguagesLabel,
+                detailGenresLabel, detailReleaseLabel, detailRuntimeLabel,
+                detailRatingLabel, detailMetadataStatusLabel);
+        hero.getChildren().addAll(posterImage, infoBox);
+        movieDetailsContainer.getChildren().addAll(pageHeader, hero);
 
         contentArea.getChildren().setAll(movieDetailsScreen);
+        loadMovieDetails(movie);
+    }
+
+    private Label createDetailValue(String label, String value) {
+        Label result = new Label(label + ": " + value);
+        result.getStyleClass().add("detail-meta");
+        result.setWrapText(true);
+        return result;
+    }
+
+    private void loadMovieDetails(Movie movie) {
+        long requestId = ++detailRequestId;
+        MovieMetadata cachedMetadata = movieMetadataCache.get(movie.title);
+        if (cachedMetadata != null) {
+            applyMovieMetadata(cachedMetadata);
+            return;
+        }
+
+        if (tmdbApiKey == null) {
+            tmdbApiKey = requestTmdbApiKey();
+        }
+        if (tmdbApiKey == null) {
+            detailMetadataStatusLabel.setText(
+                    "TMDB key not entered. Select this movie again to load its cast and details.");
+            setDetailLoadingValues("Not available");
+            return;
+        }
+
+        String apiKey = tmdbApiKey;
+        CompletableFuture.supplyAsync(() -> lookupMovieMetadata(movie.title, apiKey))
+                .whenComplete((metadata, error) -> Platform.runLater(() -> {
+                    if (requestId != detailRequestId) {
+                        return;
+                    }
+                    if (error != null) {
+                        Throwable cause = error instanceof CompletionException
+                                ? error.getCause() : error;
+                        if (cause instanceof InvalidTmdbApiKeyException && apiKey.equals(tmdbApiKey)) {
+                            tmdbApiKey = null;
+                        }
+                        detailMetadataStatusLabel.setText(cause.getMessage());
+                        setDetailLoadingValues("Not available");
+                        return;
+                    }
+                    movieMetadataCache.put(movie.title, metadata);
+                    applyMovieMetadata(metadata);
+                }));
+    }
+
+    private void setDetailLoadingValues(String value) {
+        detailCastLabel.setText("Cast: " + value);
+        detailDirectorLabel.setText("Director: " + value);
+        detailLanguagesLabel.setText("Languages: " + value);
+        detailGenresLabel.setText("Genres: " + value);
+        detailReleaseLabel.setText("Release: " + value);
+        detailRuntimeLabel.setText("Runtime: " + value);
+        detailRatingLabel.setText("TMDB rating: " + value);
+    }
+
+    private void applyMovieMetadata(MovieMetadata metadata) {
+        detailOverviewLabel.setText(metadata.overview.isEmpty()
+                ? "No overview is available for this movie." : metadata.overview);
+        detailCastLabel.setText("Cast: " + displayOrUnavailable(metadata.cast));
+        detailDirectorLabel.setText("Director: " + displayOrUnavailable(metadata.directors));
+        detailLanguagesLabel.setText("Languages: " + displayOrUnavailable(metadata.languages));
+        detailGenresLabel.setText("Genres: " + displayOrUnavailable(metadata.genres));
+        detailReleaseLabel.setText("Release: " + displayOrUnavailable(metadata.releaseDate));
+        detailRuntimeLabel.setText("Runtime: " + displayOrUnavailable(metadata.runtime));
+        detailRatingLabel.setText("TMDB rating: " + displayOrUnavailable(metadata.rating));
+        detailMetadataStatusLabel.setText("");
+    }
+
+    private static String displayOrUnavailable(String value) {
+        return value == null || value.isEmpty() ? "Not available" : value;
     }
 
     // =========================================================================
@@ -1355,12 +1609,12 @@ public class App extends Application {
     // =========================================================================
     // SCREEN SWITCHING & REUSABLE BUTTONS
     // =========================================================================
-    private void showHomeScreen() { contentArea.getChildren().setAll(homeScreen); }
-    private void showMoviesScreen() { contentArea.getChildren().setAll(moviesScreen); }
-    private void showTVShowsScreen() { contentArea.getChildren().setAll(tvShowsScreen); }
-    private void showCategoriesScreen() { contentArea.getChildren().setAll(categoriesScreen); }
-    private void showWatchlistScreen() { refreshWatchlistScreen(); contentArea.getChildren().setAll(watchlistScreen); }
-    private void showSettingsScreen() { contentArea.getChildren().setAll(settingsScreen); }
+    private void showHomeScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(homeScreen); }
+    private void showMoviesScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(moviesScreen); }
+    private void showTVShowsScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(tvShowsScreen); }
+    private void showCategoriesScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(categoriesScreen); }
+    private void showWatchlistScreen() { root.setLeft(sidebar); refreshWatchlistScreen(); contentArea.getChildren().setAll(watchlistScreen); }
+    private void showSettingsScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(settingsScreen); }
 
     private Image loadPoster(String resourcePath) {
         return new Image(getClass().getResource(resourcePath).toExternalForm(), true);
@@ -1415,6 +1669,29 @@ public class App extends Application {
     // =========================================================================
     // DATA CLASS
     // =========================================================================
+    private static class MovieMetadata {
+        final String overview;
+        final String cast;
+        final String directors;
+        final String languages;
+        final String genres;
+        final String releaseDate;
+        final String runtime;
+        final String rating;
+
+        MovieMetadata(String overview, String cast, String directors, String languages,
+                String genres, String releaseDate, String runtime, String rating) {
+            this.overview = overview;
+            this.cast = cast;
+            this.directors = directors;
+            this.languages = languages;
+            this.genres = genres;
+            this.releaseDate = releaseDate;
+            this.runtime = runtime;
+            this.rating = rating;
+        }
+    }
+
     private static class Movie {
         String title, genre, duration, rating, description, imageUrl;
         double ratingScore;
