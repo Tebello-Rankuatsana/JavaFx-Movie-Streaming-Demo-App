@@ -21,8 +21,11 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.image.WritableImage;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
@@ -41,6 +44,10 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
 import javafx.scene.text.Text;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.TextAlignment;
+import javafx.geometry.VPos;
 import javafx.stage.FileChooser;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
@@ -185,11 +192,34 @@ public class App extends Application {
         Scene scene = new Scene(root, windowWidth, windowHeight);
         scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
 
+        // Supply several sizes so Windows can choose a crisp title-bar/taskbar icon.
+        stage.getIcons().setAll(createWindowIcon(16), createWindowIcon(32), createWindowIcon(64));
         stage.setTitle("StreamFlix - Premium Streaming");
         stage.setScene(scene);
         stage.setMinWidth(Math.min(800, windowWidth));
         stage.setMinHeight(Math.min(500, windowHeight));
         stage.show();
+        // Refresh after show so the native window peer receives the application icon.
+        Platform.runLater(() ->
+                stage.getIcons().setAll(createWindowIcon(16), createWindowIcon(32), createWindowIcon(64)));
+    }
+
+    // Draw the same cyan-circle "S" mark used by the navigation rail as the window icon.
+    private Image createWindowIcon(int size) {
+        Canvas iconCanvas = new Canvas(size, size);
+        GraphicsContext graphics = iconCanvas.getGraphicsContext2D();
+        graphics.setFill(Color.web(CYAN_ACCENT));
+        double inset = Math.max(1, size / 32.0);
+        graphics.fillOval(inset, inset, size - inset * 2, size - inset * 2);
+        graphics.setFill(Color.web(TEAL_BG));
+        graphics.setFont(Font.font("Segoe UI", FontWeight.BOLD, size * 0.68));
+        graphics.setTextAlign(TextAlignment.CENTER);
+        graphics.setTextBaseline(VPos.CENTER);
+        graphics.fillText("S", size / 2.0, size / 2.0);
+
+        WritableImage icon = new WritableImage(size, size);
+        iconCanvas.snapshot(null, icon);
+        return icon;
     }
 
     // =========================================================================
@@ -198,88 +228,122 @@ public class App extends Application {
     private VBox createSidebar() {
         VBox side = new VBox(10);
         side.getStyleClass().add("sidebar");
-        side.setPrefWidth(250);
-        side.setMinWidth(250);
-        side.setMaxWidth(250);
-        side.setPadding(new Insets(30, 20, 30, 20));
+        side.setPrefWidth(86);
+        side.setMinWidth(86);
+        side.setMaxWidth(86);
+        side.setPadding(new Insets(22, 14, 22, 14));
 
-        // Logo Area
-        HBox headerBox = new HBox(12);
-        headerBox.setAlignment(Pos.CENTER_LEFT);
-        headerBox.setPadding(new Insets(0, 0, 35, 5));
+        // Keep the brand mark compact to match the reference's icon navigation rail.
+        StackPane logoIcon = new StackPane(new Circle(22, Color.web(CYAN_ACCENT)));
+        Text logoLetter = new Text("S");
+        logoLetter.getStyleClass().add("sidebar-logo-letter");
+        logoIcon.getChildren().add(logoLetter);
+        Tooltip.install(logoIcon, new Tooltip("StreamFlix"));
+        logoIcon.setPadding(new Insets(0, 0, 24, 0));
 
-        StackPane logoIcon = new StackPane();
-        Circle c1 = new Circle(12, Color.web(CYAN_ACCENT));
-        Circle c2 = new Circle(7, Color.web(TEAL_PANEL));
-        logoIcon.getChildren().addAll(c1, c2);
-
-        Text logo = new Text("STREAMFLIX");
-        logo.getStyleClass().add("logo-text");
-
-        headerBox.getChildren().addAll(logoIcon, logo);
-
-        // Navigation Links
-        VBox navLinks = new VBox(6);
+        VBox navLinks = new VBox(14);
+        navLinks.setAlignment(Pos.TOP_CENTER);
 
         Button btnHome = createNavButton("Home");
         Button btnMovies = createNavButton("Movies");
         Button btnTVShows = createNavButton("TV Shows");
         Button btnCategories = createNavButton("Categories");
         Button btnWatchlist = createNavButton("Watchlist");
+        Button btnSettings = createNavButton("Settings");
 
         updateNavButtonStyle(btnHome, true);
 
-        btnHome.setOnAction(e -> { showHomeScreen(); resetNavs(btnHome, btnMovies, btnTVShows, btnCategories, btnWatchlist); updateNavButtonStyle(btnHome, true); });
-        btnMovies.setOnAction(e -> { showMoviesScreen(); resetNavs(btnHome, btnMovies, btnTVShows, btnCategories, btnWatchlist); updateNavButtonStyle(btnMovies, true); });
-        btnTVShows.setOnAction(e -> { showTVShowsScreen(); resetNavs(btnHome, btnMovies, btnTVShows, btnCategories, btnWatchlist); updateNavButtonStyle(btnTVShows, true); });
-        btnCategories.setOnAction(e -> { showCategoriesScreen(); resetNavs(btnHome, btnMovies, btnTVShows, btnCategories, btnWatchlist); updateNavButtonStyle(btnCategories, true); });
-        btnWatchlist.setOnAction(e -> { showWatchlistScreen(); resetNavs(btnHome, btnMovies, btnTVShows, btnCategories, btnWatchlist); updateNavButtonStyle(btnWatchlist, true); });
+        btnHome.setOnAction(e -> { showHomeScreen(); resetNavs(btnHome, btnMovies, btnTVShows, btnCategories, btnWatchlist, btnSettings); updateNavButtonStyle(btnHome, true); });
+        btnMovies.setOnAction(e -> { showMoviesScreen(); resetNavs(btnHome, btnMovies, btnTVShows, btnCategories, btnWatchlist, btnSettings); updateNavButtonStyle(btnMovies, true); });
+        btnTVShows.setOnAction(e -> { showTVShowsScreen(); resetNavs(btnHome, btnMovies, btnTVShows, btnCategories, btnWatchlist, btnSettings); updateNavButtonStyle(btnTVShows, true); });
+        btnCategories.setOnAction(e -> { showCategoriesScreen(); resetNavs(btnHome, btnMovies, btnTVShows, btnCategories, btnWatchlist, btnSettings); updateNavButtonStyle(btnCategories, true); });
+        btnWatchlist.setOnAction(e -> { showWatchlistScreen(); resetNavs(btnHome, btnMovies, btnTVShows, btnCategories, btnWatchlist, btnSettings); updateNavButtonStyle(btnWatchlist, true); });
+        btnSettings.setOnAction(e -> { showSettingsScreen(); resetNavs(btnHome, btnMovies, btnTVShows, btnCategories, btnWatchlist, btnSettings); updateNavButtonStyle(btnSettings, true); });
 
-        navLinks.getChildren().addAll(btnHome, btnMovies, btnTVShows, btnCategories, btnWatchlist);
+        navLinks.getChildren().addAll(
+                createNavItem(btnHome, "Home"),
+                createNavItem(btnMovies, "Movies"),
+                createNavItem(btnTVShows, "TV Shows"),
+                createNavItem(btnCategories, "Categories"),
+                createNavItem(btnWatchlist, "Watchlist"),
+                createNavItem(btnSettings, "Settings"));
 
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
-        // Bottom Links & User Profile
-        Button btnSettings = createNavButton("Settings");
-        btnSettings.setOnAction(e -> { showSettingsScreen(); resetNavs(btnHome, btnMovies, btnTVShows, btnCategories, btnWatchlist, btnSettings); updateNavButtonStyle(btnSettings, true); });
-
-        HBox userBox = new HBox(12);
-        userBox.setAlignment(Pos.CENTER_LEFT);
-        userBox.setPadding(new Insets(15, 12, 15, 12));
+        // Keep the profile affordance visible at the foot of the rail.
+        StackPane userBox = new StackPane();
         userBox.getStyleClass().add("user-box");
-
-        Circle avatar = new Circle(18, Color.web(CYAN_ACCENT));
+        Circle avatar = new Circle(18, Color.web(TEAL_PANEL));
+        avatar.setStroke(Color.web(CYAN_ACCENT));
+        avatar.setStrokeWidth(2);
         Text avatarInitials = new Text("A");
-        avatarInitials.setFill(Color.web(TEAL_BG));
+        avatarInitials.setFill(Color.WHITE);
         avatarInitials.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-        StackPane avatarPane = new StackPane(avatar, avatarInitials);
-
-        VBox userInfo = new VBox(3);
-        Text userName = new Text("Alexander");
-        userName.getStyleClass().add("user-name");
-        Text userRole = new Text("Premium Member");
-        userRole.getStyleClass().add("user-role");
-        userInfo.getChildren().addAll(userName, userRole);
-
-        userBox.getChildren().addAll(avatarPane, userInfo);
-
-        side.getChildren().addAll(headerBox, navLinks, spacer, btnSettings, userBox);
+        userBox.getChildren().addAll(avatar, avatarInitials);
+        Tooltip.install(userBox, new Tooltip("Alexander - Premium Member"));
+        userBox.setAccessibleText("Alexander, Premium Member");
+        side.getChildren().addAll(logoIcon, navLinks, spacer, userBox);
         return side;
     }
 
     private Button createNavButton(String text) {
-        Button btn = new Button(text);
+        String icon = navigationIcon(text);
+        Button btn = new Button();
         btn.getStyleClass().add("nav-button");
-        btn.setPrefHeight(45);
-        btn.setMaxWidth(Double.MAX_VALUE);
-        btn.setAlignment(Pos.CENTER_LEFT);
+        btn.setGraphic(createPlayerIcon(icon));
+        btn.setAccessibleText(text);
+        btn.setFocusTraversable(true);
         return btn;
+    }
+
+    //Added the hover effect to the navigation items, so that when the user hovers over a button, the label appears.
+    private VBox createNavItem(Button button, String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("nav-label");
+        label.setAlignment(Pos.CENTER);
+        label.setMaxWidth(Double.MAX_VALUE);
+        label.setVisible(false);
+        label.setManaged(false);
+
+        VBox item = new VBox(2, button, label);
+        item.setAlignment(Pos.CENTER);
+        item.hoverProperty().addListener((observable, wasHovered, isHovered) -> {
+            label.setVisible(isHovered);
+            label.setManaged(isHovered);
+        });
+        return item;
     }
 
     private void updateNavButtonStyle(Button btn, boolean active) {
         btn.getStyleClass().removeAll("nav-button", "nav-button-active");
         btn.getStyleClass().add(active ? "nav-button-active" : "nav-button");
+        setNavIconColor(btn, active);
+    }
+
+    private void setNavIconColor(Button btn, boolean active) {
+        StackPane iconBox = (StackPane) btn.getGraphic();
+        SVGPath icon = (SVGPath) iconBox.getChildren().get(0);
+        icon.setFill(active ? Color.web(GOLD_ACCENT) : Color.web(TEXT_MUTED));
+    }
+
+    private String navigationIcon(String name) {
+        switch (name) {
+            case "Home":
+                return "M3 10.5 12 3l9 7.5v9a1.5 1.5 0 0 1-1.5 1.5H14v-6h-4v6H4.5A1.5 1.5 0 0 1 3 19.5z";
+            case "Movies":
+                return "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm1 2v3h3V6zm5 0v3h4V6zm6 0v3h3V6zM5 15v3h3v-3zm5 0v3h4v-3zm6 0v3h3v-3z";
+            case "TV Shows":
+                return "M3 5h18v13H3z M8 21h8 M12 18v3 M9 2l3 3 3-3";
+            case "Categories":
+                return "M3 4h8v8H3z M14 4h7v5h-7z M14 12h7v8h-7z M3 15h8v5H3z";
+            case "Watchlist":
+                return "M5 3h14v18l-7-4-7 4z";
+            case "Settings":
+                return "M3 5h18v2H3z M3 11h18v2H3z M3 17h18v2H3z M7 3h3v6H7z M14 9h3v6h-3z M9 15h3v6H9z";
+            default:
+                return "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z";
+        }
     }
 
     private void resetNavs(Button... buttons) {
@@ -288,40 +352,112 @@ public class App extends Application {
             if (!b.getStyleClass().contains("nav-button")) {
                 b.getStyleClass().add("nav-button");
             }
+            setNavIconColor(b, false);
         }
     }
 
     // =========================================================================
     // TOP BAR (Search, Profile)
     // =========================================================================
-    private HBox createTopBar() {
-        HBox topBar = new HBox(20);
-        topBar.setAlignment(Pos.CENTER_RIGHT);
-        topBar.setPadding(new Insets(25, 50, 20, 50));
+    private StackPane createTopBar() {
+        StackPane topBar = new StackPane();
+        topBar.getStyleClass().add("home-top-bar");
+        topBar.setPadding(new Insets(18, 38, 18, 38));
 
+        VBox searchArea = new VBox(6);
+        searchArea.setMaxWidth(520);
         HBox searchBox = new HBox(10);
         searchBox.getStyleClass().add("search-box");
         searchBox.setAlignment(Pos.CENTER_LEFT);
 
-        Text searchIcon = new Text("Q");
-        searchIcon.getStyleClass().add("search-icon");
+        SVGPath searchIcon = new SVGPath();
+        searchIcon.setContent("M10 3a7 7 0 1 0 0 14a7 7 0 1 0 0-14 M15 15l6 6");
+        searchIcon.setFill(Color.TRANSPARENT);
+        searchIcon.setStroke(Color.web(TEXT_MUTED));
+        searchIcon.setStrokeWidth(2.2);
+        searchIcon.setStrokeLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+        searchIcon.setStrokeLineJoin(javafx.scene.shape.StrokeLineJoin.ROUND);
+        searchIcon.setMouseTransparent(true);
+        StackPane searchIconBox = new StackPane(searchIcon);
+        searchIconBox.setMinSize(24, 24);
+        searchIconBox.setPrefSize(24, 24);
+        searchIconBox.setMaxSize(24, 24);
+        searchIconBox.setMouseTransparent(true);
 
         TextField searchField = new TextField();
         searchField.getStyleClass().add("search-field");
-        searchField.setPromptText("Search movies, shows...");
-        searchField.setPrefWidth(260);
+        searchField.setPromptText("Search movies by title or genre...");
+        searchField.setPrefWidth(390);
         searchField.setFocusTraversable(false);
+        HBox.setHgrow(searchField, Priority.ALWAYS);
+        searchBox.getChildren().addAll(searchIconBox, searchField);
 
-        searchBox.getChildren().addAll(searchIcon, searchField);
+        VBox searchResults = new VBox(2);
+        searchResults.getStyleClass().add("search-results");
+        searchResults.setMaxHeight(300);
+        searchResults.setVisible(false);
+        searchResults.setManaged(false);
+        searchArea.getChildren().addAll(searchBox, searchResults);
+        searchField.textProperty().addListener((obs, oldValue, newValue) ->
+                updateSearchResults(newValue, searchResults, searchField));
+        searchField.setOnAction(e -> {
+            if (!searchResults.getChildren().isEmpty()
+                    && searchResults.getChildren().get(0) instanceof Button) {
+                ((Button) searchResults.getChildren().get(0)).fire();
+            }
+        });
 
-        Button notifBtn = new Button("!");
+        Button notifBtn = new Button();
         notifBtn.getStyleClass().add("notification-button");
+        notifBtn.setGraphic(createPlayerIcon("M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9zm-8 12h4a2 2 0 0 1-4 0z"));
+        notifBtn.setTooltip(new Tooltip("Notifications"));
 
-        Button moviesNavBtn = new Button("Movies v");
-        moviesNavBtn.getStyleClass().add("top-nav-pill");
-
-        topBar.getChildren().addAll(moviesNavBtn, searchBox, notifBtn);
+        HBox actions = new HBox(12, notifBtn);
+        actions.setAlignment(Pos.CENTER_RIGHT);
+        StackPane.setAlignment(actions, Pos.CENTER_RIGHT);
+        StackPane.setAlignment(searchArea, Pos.CENTER);
+        topBar.getChildren().addAll(searchArea, actions);
         return topBar;
+    }
+
+    private void updateSearchResults(String query, VBox results, TextField searchField) {
+        results.getChildren().clear();
+        String normalizedQuery = query == null ? "" : query.trim().toLowerCase();
+        if (normalizedQuery.isEmpty()) {
+            results.setVisible(false);
+            results.setManaged(false);
+            return;
+        }
+
+        int matchCount = 0;
+        for (Movie movie : allMovies) {
+            if (movie.title.toLowerCase().contains(normalizedQuery)
+                    || movie.genre.toLowerCase().contains(normalizedQuery)) {
+                Button result = new Button(movie.title + "  -  " + movie.genre);
+                result.getStyleClass().add("search-result-button");
+                result.setMaxWidth(Double.MAX_VALUE);
+                result.setAlignment(Pos.CENTER_LEFT);
+                result.setOnAction(e -> {
+                    searchField.clear();
+                    results.setVisible(false);
+                    results.setManaged(false);
+                    showMovieDetails(movie);
+                });
+                results.getChildren().add(result);
+                matchCount++;
+                if (matchCount == 8) {
+                    break;
+                }
+            }
+        }
+
+        if (matchCount == 0) {
+            Label emptyResult = new Label("No matching movies");
+            emptyResult.getStyleClass().add("search-empty-result");
+            results.getChildren().add(emptyResult);
+        }
+        results.setManaged(true);
+        results.setVisible(true);
     }
 
     // =========================================================================
@@ -336,21 +472,18 @@ public class App extends Application {
         scrollPane.setFitToWidth(true);
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
 
-        VBox contentBox = new VBox(30);
-
-        contentBox.getChildren().add(createTopBar());
-        contentBox.getChildren().add(createHeroSection());
-        contentBox.getChildren().add(createCategoriesPillRow());
-
-        VBox trendingRow = createMovieRow("Action", trendingMovies);
-        VBox popularRow = createMovieRow("Adventure", popularMovies);
-        VBox recentlyRow = createMovieRow("Sci-Fi", recentlyAdded);
+        // Put poster shelves near the top, like the reference, without losing StreamFlix styling.
+        VBox contentBox = new VBox(26);
+        contentBox.setPadding(new Insets(16, 0, 40, 0));
+        VBox trendingRow = createMovieRow("Trending Now", trendingMovies);
+        VBox popularRow = createMovieRow("Popular in Adventure", popularMovies);
+        VBox recentlyRow = createMovieRow("Recently Added in Sci-Fi", recentlyAdded);
 
         contentBox.getChildren().addAll(trendingRow, popularRow, recentlyRow);
-        VBox.setMargin(recentlyRow, new Insets(0, 0, 60, 0));
 
         scrollPane.setContent(contentBox);
-        homeScreen.getChildren().add(scrollPane);
+        homeScreen.getChildren().addAll(createTopBar(), scrollPane);
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
     }
 
     private StackPane createHeroSection() {
@@ -451,7 +584,7 @@ public class App extends Application {
 
     private VBox createMovieRow(String title, List<Movie> movies) {
         VBox section = new VBox(15);
-        section.setPadding(new Insets(0, 50, 0, 50));
+        section.setPadding(new Insets(0, 36, 0, 36));
 
         Text titleText = new Text(title);
         titleText.getStyleClass().add("section-title");
@@ -463,7 +596,7 @@ public class App extends Application {
         scroll.setFitToHeight(true);
 
         HBox cardBox = new HBox(20);
-        cardBox.setPadding(new Insets(10, 0, 20, 0));
+        cardBox.setPadding(new Insets(8, 2, 20, 2));
 
         for (Movie movie : movies) {
             cardBox.getChildren().add(createMovieCard(movie));
@@ -931,7 +1064,9 @@ public class App extends Application {
         VBox content = new VBox(30);
         content.setPadding(new Insets(30, 50, 60, 50));
 
-        Button backBtn = createSecondaryButton("Back to Home");
+        Button backBtn = createPlayerButton(
+                "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z",
+                "player-back-button", "Back to Home");
         backBtn.setOnAction(e -> showHomeScreen());
 
         movieDetailsContainer = new VBox(20);
