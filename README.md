@@ -35,3 +35,5 @@ icon in the player. Movie poster images are loaded from the internet.
 The home screen's notification button opens a dedicated Updates & Terms screen
 with app notices and links to TMDB and YouTube terms; the profile control is
 beside it in the top bar.
+
+
