@@ -36,4 +36,17 @@ The home screen's notification button opens a dedicated Updates & Terms screen
 with app notices and links to TMDB and YouTube terms; the profile control is
 beside it in the top bar.
 
+## Settings and Profile
+
+The Settings screen includes playback, notifications, and privacy options.
+Playback lets users select a preferred display quality from 360p through 2K
+(1440p). The selected preference is kept for the current app session; actual
+trailer quality depends on the video and playback provider.
+
+The Profile screen lets users edit their name, email address, and preferred
+language, and cancel the displayed Premium membership after confirmation.
+These profile and membership changes are stored only in memory for the current
+app session. This demo does not create or connect to real user accounts or a
+billing service, so users cannot delete an actual account from the app.
+
 
