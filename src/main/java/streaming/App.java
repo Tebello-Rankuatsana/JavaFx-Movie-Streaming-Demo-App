@@ -154,7 +154,7 @@ public class App extends Application {
         addMovie("Central Intelligence", "Action", "/images/Actions/Central Intelligence.jpg");
 
         addMovie("Uncharted", "Adventure", "/images/Adventure/uncharted.jpg");
-        addMovie("Trazen", "Adventure", "/images/Adventure/trazen.jpg");
+        addMovie("The Legend of Tarzan", "Adventure", "/images/Adventure/trazen.jpg");
         addMovie("The Tomorrow War", "Adventure", "/images/Adventure/The Tomorrow War.jpg");
         addMovie("Shang-Chi and the Legend of the Ten Rings", "Adventure", "/images/Adventure/SHANG-CHI AND THE LEGEND OF THE TEN RINGS.jpg");
         addMovie("Mission: Impossible", "Adventure", "/images/Adventure/mission impossible.jpg");
