@@ -23,6 +23,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
@@ -95,6 +96,7 @@ public class App extends Application {
     private VBox categoriesScreen;
     private VBox settingsScreen;
     private VBox notificationsScreen;
+    private Button notificationsBackButton;
     private VBox tvShowsScreen;
     private VBox moviesScreen;
     private BorderPane mediaPlayerScreen;
@@ -108,6 +110,14 @@ public class App extends Application {
 
     // --- Media Player State ---
     private Stage mainStage;
+    // Demo profile and playback preferences live only for this app run; there is no account backend.
+    private String profileName = "Alexander";
+    private String profileEmail = "alexander@example.com";
+    private String preferredLanguage = "English";
+    private boolean membershipActive = true;
+    private Button homeProfileButton;
+    private Text homeProfileInitial;
+    private String playbackQuality = "1080p";
     private StackPane videoContainer;
     private Region playerScrim;
     private Label videoPlaceholder;
@@ -405,31 +415,23 @@ public class App extends Application {
         notifBtn.setGraphic(createPlayerIcon("M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9zm-8 12h4a2 2 0 0 1-4 0z"));
         notifBtn.setTooltip(new Tooltip("Notifications"));
         notifBtn.setAccessibleText("Notifications: updates and service terms");
-        notifBtn.setOnAction(e -> showNotifications());
+        notifBtn.setOnAction(e -> showNotifications(this::showHomeScreen, "Back to Home"));
 
-        Button profileButton = new Button();
-        profileButton.getStyleClass().add("profile-button");
+        // Keep the Home profile control compact: show only initials, never membership details.
+        homeProfileButton = new Button();
+        homeProfileButton.getStyleClass().add("profile-button");
         Circle profileAvatar = new Circle(17, Color.web(TEAL_PANEL));
         profileAvatar.setStroke(Color.web(CYAN_ACCENT));
         profileAvatar.setStrokeWidth(1.5);
-        Text avatarInitial = new Text("A");
-        avatarInitial.setFill(Color.WHITE);
-        avatarInitial.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-        StackPane avatar = new StackPane(profileAvatar, avatarInitial);
-        Label profileName = new Label("Alexander");
-        profileName.getStyleClass().add("profile-name");
-        Label membership = new Label("Premium Member");
-        membership.getStyleClass().add("profile-membership");
-        VBox profileLabels = new VBox(2, profileName, membership);
-        profileLabels.getStyleClass().add("profile-labels");
-        HBox profileGraphic = new HBox(10, avatar, profileLabels);
-        profileGraphic.setAlignment(Pos.CENTER_LEFT);
-        profileButton.setGraphic(profileGraphic);
-        profileButton.setTooltip(new Tooltip("Profile: Alexander"));
-        profileButton.setAccessibleText("Profile, Alexander, Premium Member");
-        profileButton.setOnAction(e -> showProfileInfo());
+        homeProfileInitial = new Text();
+        homeProfileInitial.setFill(Color.WHITE);
+        homeProfileInitial.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+        StackPane avatar = new StackPane(profileAvatar, homeProfileInitial);
+        homeProfileButton.setGraphic(avatar);
+        updateHomeProfileButton();
+        homeProfileButton.setOnAction(e -> showProfileInfo(this::showHomeScreen));
 
-        HBox actions = new HBox(12, notifBtn, profileButton);
+        HBox actions = new HBox(12, notifBtn, homeProfileButton);
         actions.setAlignment(Pos.CENTER_RIGHT);
         StackPane.setAlignment(actions, Pos.CENTER_RIGHT);
         StackPane.setAlignment(searchArea, Pos.CENTER);
@@ -437,8 +439,27 @@ public class App extends Application {
         return topBar;
     }
 
-    private void showNotifications() {
+    private void updateHomeProfileButton() {
+        homeProfileInitial.setText(profileInitials(profileName));
+        homeProfileButton.setTooltip(new Tooltip("Profile for " + profileName));
+        homeProfileButton.setAccessibleText("Profile for " + profileName);
+    }
+
+    private String profileInitials(String name) {
+        // Use the first and last initials when available, falling back to one initial for a single name.
+        String[] parts = name.trim().split("\\s+");
+        if (parts.length == 1) {
+            return parts[0].substring(0, 1).toUpperCase();
+        }
+        return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
+    }
+
+    private void showNotifications(Runnable backAction, String backLabel) {
         // Reuse the app's main content area so notices appear as a normal screen, not a popup.
+        // The shared screen returns to the caller, whether it was opened from Home or Settings.
+        notificationsBackButton.setOnAction(e -> backAction.run());
+        notificationsBackButton.setTooltip(new Tooltip(backLabel));
+        notificationsBackButton.setAccessibleText(backLabel);
         root.setLeft(sidebar);
         contentArea.getChildren().setAll(notificationsScreen);
         mainStage.setTitle("StreamFlix - Updates & Terms");
@@ -448,6 +469,7 @@ public class App extends Application {
         // Keep service updates and terms in a scrollable screen that follows the Settings layout.
         notificationsScreen = new VBox(0);
         notificationsScreen.getStyleClass().add("screen");
+        notificationsScreen.getStyleClass().add("notifications-screen");
 
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.getStyleClass().add("scroll-pane");
@@ -455,6 +477,8 @@ public class App extends Application {
 
         VBox content = new VBox(24);
         content.setPadding(new Insets(40, 50, 60, 50));
+        notificationsBackButton = createScreenBackButton("Back to Home", this::showHomeScreen);
+        content.getChildren().add(notificationsBackButton);
         Label title = new Label("Updates & Terms");
         title.getStyleClass().add("screen-title");
         Label intro = new Label("Service notices and information about the services used by StreamFlix.");
@@ -500,16 +524,128 @@ public class App extends Application {
         return item;
     }
 
-    private void showProfileInfo() {
-        Dialog<Void> dialog = new Dialog<>();
-        dialog.initOwner(mainStage);
-        dialog.setTitle("Profile");
-        dialog.setHeaderText("Alexander");
-        Label membership = new Label("Premium Member");
+    private void showProfileInfo(Runnable returnAction) {
+        root.setLeft(sidebar);
+        mainStage.setTitle("StreamFlix - Profile");
+
+        VBox screen = new VBox(0);
+        screen.getStyleClass().add("screen");
+        screen.getStyleClass().add("profile-screen");
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.getStyleClass().add("scroll-pane");
+        scrollPane.setFitToWidth(true);
+
+        VBox content = new VBox(24);
+        content.setPadding(new Insets(40, 50, 60, 50));
+        Button backButton = createPlayerButton(
+                "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z",
+                "player-back-button", "Back");
+        backButton.setOnAction(e -> returnAction.run());
+
+        Label title = new Label("Profile");
+        title.getStyleClass().add("screen-title");
+
+        Circle avatarCircle = new Circle(32, Color.web(TEAL_PANEL));
+        avatarCircle.setStroke(Color.web(CYAN_ACCENT));
+        avatarCircle.setStrokeWidth(1.5);
+        Text avatarInitial = new Text(profileInitials(profileName));
+        avatarInitial.setFill(Color.WHITE);
+        avatarInitial.setStyle("-fx-font-weight: bold; -fx-font-size: 20px;");
+        StackPane avatar = new StackPane(avatarCircle, avatarInitial);
+
+        Label name = new Label(profileName);
+        name.getStyleClass().add("profile-name");
+        Label membership = new Label(membershipActive ? "Premium Member" : "Membership cancelled");
         membership.getStyleClass().add("profile-membership");
-        dialog.getDialogPane().setContent(membership);
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.showAndWait();
+        VBox profileHeading = new VBox(6, name, membership);
+        HBox identity = new HBox(18, avatar, profileHeading);
+        identity.setAlignment(Pos.CENTER_LEFT);
+        identity.getStyleClass().add("notification-item");
+
+        Label detailsTitle = new Label("Profile details");
+        detailsTitle.getStyleClass().add("detail-section-heading");
+        // These editable fields update the demo's in-memory profile, not a remote account.
+        TextField nameField = new TextField(profileName);
+        TextField emailField = new TextField(profileEmail);
+        TextField languageField = new TextField(preferredLanguage);
+        nameField.setPromptText("Full name");
+        emailField.setPromptText("Email address");
+        languageField.setPromptText("Preferred language");
+        nameField.getStyleClass().add("profile-form-field");
+        emailField.getStyleClass().add("profile-form-field");
+        languageField.getStyleClass().add("profile-form-field");
+
+        VBox profileForm = new VBox(10,
+                profileField("Full name", nameField),
+                profileField("Email address", emailField),
+                profileField("Preferred language", languageField));
+        Label membershipTitle = new Label("Membership");
+        membershipTitle.getStyleClass().add("detail-section-heading");
+        VBox membershipDetails = new VBox(14,
+                notificationItem("Plan", "Premium"),
+                notificationItem("Status", membershipActive ? "Active" : "Cancelled"),
+                notificationItem("Billing", "This demo does not connect to billing. Membership changes only affect the current app session."));
+        Button saveButton = createPrimaryButton("Save profile changes");
+        saveButton.setOnAction(e -> saveProfileChanges(nameField, emailField, languageField, returnAction));
+
+        VBox profileDetails = new VBox(18, detailsTitle, profileForm, saveButton,
+                membershipTitle, membershipDetails);
+        if (membershipActive) {
+            Button cancelMembershipButton = new Button("Cancel membership");
+            cancelMembershipButton.getStyleClass().add("profile-danger-button");
+            cancelMembershipButton.setOnAction(e -> confirmMembershipCancellation(returnAction));
+            profileDetails.getChildren().add(cancelMembershipButton);
+        }
+
+        content.getChildren().addAll(backButton, title, identity, profileDetails);
+        scrollPane.setContent(content);
+        screen.getChildren().add(scrollPane);
+        contentArea.getChildren().setAll(screen);
+    }
+
+    private VBox profileField(String labelText, TextField input) {
+        Label label = new Label(labelText);
+        label.getStyleClass().add("profile-field-label");
+        VBox field = new VBox(6, label, input);
+        return field;
+    }
+
+    private void saveProfileChanges(TextField nameField, TextField emailField,
+            TextField languageField, Runnable returnAction) {
+        String newName = nameField.getText().trim();
+        String newEmail = emailField.getText().trim();
+        String newLanguage = languageField.getText().trim();
+        if (newName.isEmpty() || newEmail.isEmpty() || newLanguage.isEmpty()
+                || !newEmail.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            Alert alert = new Alert(Alert.AlertType.ERROR,
+                    "Enter a name, a valid email address, and a preferred language.",
+                    ButtonType.OK);
+            alert.initOwner(mainStage);
+            alert.setHeaderText("Unable to save profile");
+            alert.showAndWait();
+            return;
+        }
+
+        profileName = newName;
+        profileEmail = newEmail;
+        preferredLanguage = newLanguage;
+        updateHomeProfileButton();
+        showProfileInfo(returnAction);
+    }
+
+    private void confirmMembershipCancellation(Runnable returnAction) {
+        // Confirm the local status change and make clear that no billing service is contacted.
+        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION,
+                "Cancel the Premium membership? This demo will only change the displayed status for this app session; it will not contact a billing service.",
+                ButtonType.OK, ButtonType.CANCEL);
+        confirmation.initOwner(mainStage);
+        confirmation.setHeaderText("Cancel membership");
+        confirmation.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                membershipActive = false;
+                showProfileInfo(returnAction);
+            }
+        });
     }
 
     private void updateSearchResults(String query, VBox results, TextField searchField) {
@@ -1493,17 +1629,22 @@ public class App extends Application {
         title.getStyleClass().add("screen-title");
 
         VBox settingsList = new VBox(15);
-        settingsList.getChildren().add(createSettingItem("Account", "Manage your account details"));
-        settingsList.getChildren().add(createSettingItem("Playback", "Video quality and playback settings"));
-        settingsList.getChildren().add(createSettingItem("Notifications", "Configure notification preferences"));
-        settingsList.getChildren().add(createSettingItem("Privacy", "Control your privacy settings"));
+        // Keep each Settings entry wired to its corresponding detail screen or shared app screen.
+        settingsList.getChildren().add(createSettingItem("Account", "Manage your account details",
+                () -> showProfileInfo(this::showSettingsScreen)));
+        settingsList.getChildren().add(createSettingItem("Playback", "Video quality and playback settings",
+                this::showPlaybackSettings));
+        settingsList.getChildren().add(createSettingItem("Notifications", "Configure notification preferences",
+                () -> showNotifications(this::showSettingsScreen, "Back to Settings")));
+        settingsList.getChildren().add(createSettingItem("Privacy", "Control your privacy settings",
+                this::showPrivacySettings));
 
         content.getChildren().addAll(title, settingsList);
         scrollPane.setContent(content);
         settingsScreen.getChildren().add(scrollPane);
     }
 
-    private HBox createSettingItem(String title, String subtitle) {
+    private HBox createSettingItem(String title, String subtitle, Runnable action) {
         HBox item = new HBox(15);
         item.getStyleClass().add("setting-item");
         item.setAlignment(Pos.CENTER_LEFT);
@@ -1524,7 +1665,103 @@ public class App extends Application {
         item.getChildren().addAll(textBox, spacer, arrow);
         item.setOnMouseEntered(e -> item.getStyleClass().add("setting-item-hover"));
         item.setOnMouseExited(e -> item.getStyleClass().remove("setting-item-hover"));
+        item.setOnMouseClicked(e -> action.run());
+        item.setFocusTraversable(true);
+        item.setOnKeyPressed(e -> {
+            if (e.getCode() == javafx.scene.input.KeyCode.ENTER
+                    || e.getCode() == javafx.scene.input.KeyCode.SPACE) {
+                action.run();
+            }
+        });
         return item;
+    }
+
+    private void showPlaybackSettings() {
+        // The selected value is a session preference; the provider still controls actual stream quality.
+        Label description = new Label("Choose your preferred video quality. The quality available during playback depends on the video and playback provider.");
+        description.getStyleClass().add("detail-synopsis");
+        description.setWrapText(true);
+
+        Label qualityHeading = new Label("Preferred video quality");
+        qualityHeading.getStyleClass().add("detail-section-heading");
+        FlowPane qualityOptions = new FlowPane(12, 12);
+        for (String quality : List.of("360p", "480p", "720p", "1080p", "2K (1440p)")) {
+            Button option = new Button(quality);
+            option.getStyleClass().add("quality-option");
+            if (quality.equals(playbackQuality)) {
+                option.getStyleClass().add("quality-option-selected");
+            }
+            option.setAccessibleText("Preferred video quality: " + quality);
+            option.setOnAction(e -> {
+                playbackQuality = quality;
+                showPlaybackSettings();
+            });
+            qualityOptions.getChildren().add(option);
+        }
+
+        VBox details = new VBox(18, description, qualityHeading, qualityOptions);
+        VBox settings = createSettingsDetailScreen("Playback", details);
+        contentArea.getChildren().setAll(settings);
+    }
+
+    private void showPrivacySettings() {
+        // Explain this demo's data handling and link directly to the connected providers' terms.
+        Label introduction = new Label("Please review this notice before using the StreamFlix demo. By continuing to use the app, you acknowledge how it handles information and that connected services have their own terms.");
+        introduction.getStyleClass().add("detail-synopsis");
+        introduction.setWrapText(true);
+
+        VBox details = new VBox(14,
+                notificationItem("Information and credentials",
+                        "Movie searches and details are requested from TMDB. Any TMDB API key or read token entered for this app remains in memory for the current session and is not saved."),
+                notificationItem("Watchlist and playback preference",
+                        "Your watchlist and selected playback quality are held in app memory for the current run. This demo does not create an account or process payments."),
+                notificationItem("Third-party services",
+                        "Trailers may be embedded from YouTube, and movie information comes from TMDB. These providers may handle connection or usage data under their own privacy policies and terms."),
+                notificationItem("Your choice",
+                        "If you do not agree with these conditions, do not use the features that connect to TMDB or YouTube. You can close the app at any time."));
+
+        Label termsHeading = new Label("Provider terms");
+        termsHeading.getStyleClass().add("detail-section-heading");
+        Hyperlink tmdbTerms = new Hyperlink("TMDB Terms of Use");
+        tmdbTerms.setOnAction(e -> getHostServices().showDocument(
+                "https://www.themoviedb.org/terms-of-use"));
+        Hyperlink youtubeTerms = new Hyperlink("YouTube Terms of Service");
+        youtubeTerms.setOnAction(e -> getHostServices().showDocument(
+                "https://www.youtube.com/t/terms"));
+        HBox termsLinks = new HBox(16, tmdbTerms, youtubeTerms);
+
+        details.getChildren().addAll(termsHeading, termsLinks);
+        VBox privacyContent = new VBox(18, introduction, details);
+        VBox settings = createSettingsDetailScreen("Privacy & Service Terms", privacyContent);
+        contentArea.getChildren().setAll(settings);
+    }
+
+    private VBox createSettingsDetailScreen(String title, VBox details) {
+        VBox screen = new VBox(0);
+        screen.getStyleClass().add("screen");
+        screen.getStyleClass().add("settings-detail-screen");
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.getStyleClass().add("scroll-pane");
+        scrollPane.setFitToWidth(true);
+
+        VBox content = new VBox(24);
+        content.setPadding(new Insets(40, 50, 60, 50));
+        // Detail screens opened from Settings return to the Settings list, not Home.
+        Button backButton = createScreenBackButton("Back to Settings", this::showSettingsScreen);
+        Text screenTitle = new Text(title);
+        screenTitle.getStyleClass().add("screen-title");
+        content.getChildren().addAll(backButton, screenTitle, details);
+        scrollPane.setContent(content);
+        screen.getChildren().add(scrollPane);
+        return screen;
+    }
+
+    private Button createScreenBackButton(String label, Runnable action) {
+        Button backButton = createPlayerButton(
+                "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z",
+                "player-back-button", label);
+        backButton.setOnAction(e -> action.run());
+        return backButton;
     }
 
     private void createTVShowsScreen() {
