@@ -33,11 +33,8 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.effect.DropShadow;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.image.WritableImage;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
@@ -53,10 +50,8 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
 import javafx.scene.text.Text;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.TextAlignment;
-import javafx.geometry.VPos;
+// import javafx.scene.text.Font;
+// import javafx.scene.text.FontWeight;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -217,42 +212,10 @@ public class App extends Application {
         scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
 
         stage.setTitle("StreamFlix - Premium Stream");
-        // The title is text; Stage icons supply the logo shown beside it in the native title bar.
-        stage.getIcons().setAll(createWindowIcon(16), createWindowIcon(32), createWindowIcon(64));
         stage.setScene(scene);
         stage.setMinWidth(Math.min(800, windowWidth));
         stage.setMinHeight(Math.min(500, windowHeight));
         stage.show();
-        // Refresh after show so the native window peer receives the application icon.
-        Platform.runLater(() ->
-                stage.getIcons().setAll(createWindowIcon(16), createWindowIcon(32), createWindowIcon(64)));
-    }
-
-    // Draw the same cyan-and-gold SF monogram used by the navigation rail.
-    private Image createWindowIcon(int size) {
-        Canvas iconCanvas = new Canvas(size, size);
-        GraphicsContext graphics = iconCanvas.getGraphicsContext2D();
-        graphics.setFill(Color.web(CYAN_ACCENT));
-        double inset = Math.max(1, size * 0.04);
-        graphics.fillRoundRect(inset, inset, size - inset * 2, size - inset * 2,
-                size * 0.3, size * 0.3);
-        graphics.setFill(Color.web(TEAL_BG));
-        double innerInset = size * 0.12;
-        graphics.fillRoundRect(innerInset, innerInset, size - innerInset * 2,
-                size - innerInset * 2, size * 0.22, size * 0.22);
-        graphics.setFill(Color.WHITE);
-        graphics.setFont(Font.font("Segoe UI", FontWeight.EXTRA_BOLD, size * 0.38));
-        graphics.setTextAlign(TextAlignment.CENTER);
-        graphics.setTextBaseline(VPos.CENTER);
-        graphics.fillText("SF", size / 2.0, size * 0.46);
-        graphics.setStroke(Color.web(GOLD_ACCENT));
-        graphics.setLineWidth(Math.max(1, size * 0.055));
-        graphics.setLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
-        graphics.strokeLine(size * 0.32, size * 0.76, size * 0.68, size * 0.76);
-
-        WritableImage icon = new WritableImage(size, size);
-        iconCanvas.snapshot(null, icon);
-        return icon;
     }
 
     // =========================================================================
