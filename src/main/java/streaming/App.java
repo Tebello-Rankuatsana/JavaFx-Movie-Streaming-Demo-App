@@ -1727,15 +1727,32 @@ public class App extends Application {
         scrollPane.getStyleClass().add("scroll-pane");
         scrollPane.setFitToWidth(true);
 
-        VBox content = new VBox(30);
-        content.setPadding(new Insets(40, 50, 60, 50));
+        // Match Home's spacing and horizontal insets so category shelves line up consistently.
+        VBox content = new VBox(26);
+        content.setPadding(new Insets(16, 0, 40, 0));
         Text title = new Text("Browse Categories");
         title.getStyleClass().add("screen-title");
+        VBox.setMargin(title, new Insets(0, 36, -12, 36));
 
+        // Keep movie shelves grouped under a clear heading so they remain distinct from TV series.
+        Text moviesHeading = new Text("Movies");
+        moviesHeading.getStyleClass().add("section-title");
+        VBox.setMargin(moviesHeading, new Insets(0, 36, -12, 36));
         content.getChildren().add(title);
+        content.getChildren().add(moviesHeading);
         content.getChildren().add(createMovieRow("Action", categoryMovies("Action")));
         content.getChildren().add(createMovieRow("Adventure", categoryMovies("Adventure")));
         content.getChildren().add(createMovieRow("Sci-Fi", categoryMovies("Sci-Fi")));
+
+        // Give TV series their own heading and genre shelves, reusing the existing horizontal cards.
+        Text tvShowsHeading = new Text("TV Series");
+        tvShowsHeading.getStyleClass().add("section-title");
+        VBox.setMargin(tvShowsHeading, new Insets(12, 36, -12, 36));
+        content.getChildren().add(tvShowsHeading);
+        content.getChildren().add(createMovieRow("Action TV Shows", tvShowsByGenre("Action")));
+        content.getChildren().add(createMovieRow("Adventure TV Shows", tvShowsByGenre("Adventure")));
+        content.getChildren().add(createMovieRow("Sci-Fi TV Shows", tvShowsByGenre("Sci-Fi")));
+
         scrollPane.setContent(content);
         categoriesScreen.getChildren().add(scrollPane);
     }
