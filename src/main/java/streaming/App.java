@@ -79,7 +79,9 @@ public class App extends Application {
     private VBox sidebar;
 
     // --- Screens ---
-    private VBox homeScreen;
+    private StackPane homeScreen;
+    private ScrollPane homeSearchResultsPane;
+    private VBox homeSearchArea;
     private VBox movieDetailsScreen;
     private VBox movieDetailsContainer;
     private Label detailOverviewLabel;
@@ -409,13 +411,14 @@ public class App extends Application {
     // =========================================================================
     // TOP BAR (Search, Profile)
     // =========================================================================
-    private StackPane createTopBar() {
-        StackPane topBar = new StackPane();
+    private BorderPane createTopBar() {
+        BorderPane topBar = new BorderPane();
         topBar.getStyleClass().add("home-top-bar");
         topBar.setPadding(new Insets(18, 38, 18, 38));
 
         VBox searchArea = new VBox(6);
         searchArea.setMaxWidth(520);
+        homeSearchArea = searchArea;
         HBox searchBox = new HBox(10);
         searchBox.getStyleClass().add("search-box");
         searchBox.setAlignment(Pos.CENTER_LEFT);
@@ -436,20 +439,28 @@ public class App extends Application {
 
         TextField searchField = new TextField();
         searchField.getStyleClass().add("search-field");
-        searchField.setPromptText("Search movies by title or genre...");
+        searchField.setPromptText("Search movies and TV shows by title or genre...");
         searchField.setPrefWidth(390);
-        searchField.setFocusTraversable(false);
+        // Keep the search field reachable by both mouse clicks and keyboard tab navigation.
+        searchField.setFocusTraversable(true);
         HBox.setHgrow(searchField, Priority.ALWAYS);
         searchBox.getChildren().addAll(searchIconBox, searchField);
 
         VBox searchResults = new VBox(2);
         searchResults.getStyleClass().add("search-results");
-        searchResults.setMaxHeight(300);
-        searchResults.setVisible(false);
-        searchResults.setManaged(false);
-        searchArea.getChildren().addAll(searchBox, searchResults);
+        // Keep long result lists within the top bar and let users scroll through every match.
+        ScrollPane searchResultsPane = new ScrollPane(searchResults);
+        searchResultsPane.getStyleClass().add("search-results-pane");
+        searchResultsPane.setFitToWidth(true);
+        searchResultsPane.setMaxHeight(520);
+        searchResultsPane.setVisible(false);
+        searchResultsPane.setManaged(false);
+        // Keep suggestions outside the top bar's layout so they can float over the Home shelves.
+        homeSearchResultsPane = searchResultsPane;
+        searchArea.getChildren().add(searchBox);
         searchField.textProperty().addListener((obs, oldValue, newValue) ->
-                updateSearchResults(newValue, searchResults, searchField));
+                updateSearchResults(newValue, searchResults, searchResultsPane, searchField));
+        // Pressing Enter opens the first available result, matching the search suggestions.
         searchField.setOnAction(e -> {
             if (!searchResults.getChildren().isEmpty()
                     && searchResults.getChildren().get(0) instanceof Button) {
@@ -480,9 +491,14 @@ public class App extends Application {
 
         HBox actions = new HBox(12, notifBtn, homeProfileButton);
         actions.setAlignment(Pos.CENTER_RIGHT);
-        StackPane.setAlignment(actions, Pos.CENTER_RIGHT);
-        StackPane.setAlignment(searchArea, Pos.CENTER);
-        topBar.getChildren().addAll(searchArea, actions);
+        // Balance both sides of the BorderPane so the search field aligns with the screen center.
+        Region leftSpacer = new Region();
+        leftSpacer.minWidthProperty().bind(actions.widthProperty());
+        leftSpacer.prefWidthProperty().bind(actions.widthProperty());
+        leftSpacer.maxWidthProperty().bind(actions.widthProperty());
+        topBar.setLeft(leftSpacer);
+        topBar.setCenter(searchArea);
+        topBar.setRight(actions);
         return topBar;
     }
 
@@ -695,51 +711,71 @@ public class App extends Application {
         });
     }
 
-    private void updateSearchResults(String query, VBox results, TextField searchField) {
+    private void updateSearchResults(String query, VBox results, ScrollPane resultsPane,
+            TextField searchField) {
         results.getChildren().clear();
-        String normalizedQuery = query == null ? "" : query.trim().toLowerCase();
+        // Locale.ROOT makes title and genre matching case-insensitive regardless of system locale.
+        String normalizedQuery = query == null ? ""
+                : query.trim().toLowerCase(java.util.Locale.ROOT);
         if (normalizedQuery.isEmpty()) {
-            results.setVisible(false);
-            results.setManaged(false);
+            // Hide the suggestion panel when the search field is cleared.
+            resultsPane.setVisible(false);
+            resultsPane.setManaged(false);
             return;
         }
 
-        int matchCount = 0;
-        for (Movie movie : allMovies) {
-            if (movie.title.toLowerCase().contains(normalizedQuery)
-                    || movie.genre.toLowerCase().contains(normalizedQuery)) {
-                Button result = new Button(movie.title + "  -  " + movie.genre);
-                result.getStyleClass().add("search-result-button");
-                result.setMaxWidth(Double.MAX_VALUE);
-                result.setAlignment(Pos.CENTER_LEFT);
-                result.setOnAction(e -> {
-                    searchField.clear();
-                    results.setVisible(false);
-                    results.setManaged(false);
-                    showMovieDetails(movie);
-                });
-                results.getChildren().add(result);
-                matchCount++;
-                if (matchCount == 8) {
-                    break;
-                }
+        // Search both in-app catalogs so a result can only navigate to media the app contains.
+        List<Movie> searchableMedia = new ArrayList<>(allMovies);
+        searchableMedia.addAll(allTvShows);
+        List<Movie> matches = new ArrayList<>();
+        for (Movie media : searchableMedia) {
+            if (media.title.toLowerCase(java.util.Locale.ROOT).contains(normalizedQuery)
+                    || media.genre.toLowerCase(java.util.Locale.ROOT).contains(normalizedQuery)) {
+                matches.add(media);
             }
         }
 
-        if (matchCount == 0) {
-            Label emptyResult = new Label("No matching movies");
+        if (matches.isEmpty()) {
+            // Make it explicit that searches only cover the media included in this app.
+            Label emptyResult = new Label("Not available in this app");
             emptyResult.getStyleClass().add("search-empty-result");
             results.getChildren().add(emptyResult);
+        } else {
+            // Show how many in-app items match and make the expanded list easy to scan.
+            Label resultHeading = new Label(matches.size() + " available in this app");
+            resultHeading.getStyleClass().add("search-results-heading");
+            results.getChildren().add(resultHeading);
+            for (Movie media : matches) {
+                String mediaType = media.isTvShow ? "TV Show" : "Movie";
+                Button result = new Button(mediaType + "  |  " + media.title
+                        + "  -  " + media.genre);
+                result.getStyleClass().add("search-result-button");
+                result.setMaxWidth(Double.MAX_VALUE);
+                result.setMinHeight(60);
+                result.setPrefHeight(60);
+                result.setAlignment(Pos.CENTER_LEFT);
+                result.setOnAction(e -> {
+                    // Clear the completed search and open the selected in-app item's details.
+                    searchField.clear();
+                    resultsPane.setVisible(false);
+                    resultsPane.setManaged(false);
+                    showMovieDetails(media);
+                });
+                results.getChildren().add(result);
+            }
         }
-        results.setManaged(true);
-        results.setVisible(true);
+        // Reserve room for the heading, full-height result cards, and panel padding.
+        resultsPane.setPrefViewportHeight(Math.min(600, 68 + matches.size() * 68));
+        resultsPane.setVvalue(0);
+        resultsPane.setManaged(true);
+        resultsPane.setVisible(true);
     }
 
     // =========================================================================
     // HOME SCREEN
     // =========================================================================
     private void createHomeScreen() {
-        homeScreen = new VBox(0);
+        homeScreen = new StackPane();
         homeScreen.getStyleClass().add("screen");
 
         ScrollPane scrollPane = new ScrollPane();
@@ -769,8 +805,21 @@ public class App extends Application {
                 tvHeading, actionTvRow, adventureTvRow, sciFiTvRow);
 
         scrollPane.setContent(contentBox);
-        homeScreen.getChildren().addAll(createTopBar(), scrollPane);
+
+        // Layer the top bar above the scrolling shelves so search can overlay their content.
+        BorderPane topBar = createTopBar();
+        VBox homeLayout = new VBox(0, topBar, scrollPane);
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
+        homeScreen.getChildren().add(homeLayout);
+
+        // Place suggestions over the shelves, directly below the search bar, without resizing Home.
+        StackPane.setAlignment(homeSearchResultsPane, Pos.TOP_CENTER);
+        StackPane.setMargin(homeSearchResultsPane, new Insets(82, 0, 0, 0));
+        // Match the search area's actual width rather than using a separate fixed dropdown width.
+        homeSearchResultsPane.minWidthProperty().bind(homeSearchArea.widthProperty());
+        homeSearchResultsPane.prefWidthProperty().bind(homeSearchArea.widthProperty());
+        homeSearchResultsPane.maxWidthProperty().bind(homeSearchArea.widthProperty());
+        homeScreen.getChildren().add(homeSearchResultsPane);
     }
 
     private StackPane createHeroSection() {
