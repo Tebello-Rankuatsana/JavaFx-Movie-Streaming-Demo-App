@@ -91,6 +91,7 @@ public class App extends Application {
     private Label detailDirectorLabel;
     private Label detailLanguagesLabel;
     private Label detailMetadataStatusLabel;
+    private boolean detailIsTvShow;
     private long detailRequestId;
     private VBox watchlistScreen;
     private VBox categoriesScreen;
@@ -102,6 +103,8 @@ public class App extends Application {
     private BorderPane mediaPlayerScreen;
     // --- Data Models ---
     private final List<Movie> allMovies = new ArrayList<>();
+    // TV series share the card/detail model while remaining separate from the movie catalog.
+    private final List<Movie> allTvShows = new ArrayList<>();
     private final List<Movie> watchlist = new ArrayList<>();
     private final List<Movie> trendingMovies = new ArrayList<>();
     private final List<Movie> recentlyAdded = new ArrayList<>();
@@ -144,32 +147,62 @@ public class App extends Application {
     }
 
     private void initData() {
-        addMovie("The Dark Knight", "Action", "/images/Actions/The dark night.jpg");
-        addMovie("The Beekeeper", "Action", "/images/Actions/The Beekeeper.jpg");
-        addMovie("John Wick 4", "Action", "/images/Actions/John Wick 4.jpg");
-        addMovie("Inception", "Action", "/images/Actions/inception.jpg");
-        addMovie("Hitman", "Action", "/images/Actions/hitman.jpg");
-        addMovie("Hell or High Water", "Action", "/images/Actions/Hell or High Water.jpg");
-        addMovie("Extraction", "Action", "/images/Actions/Extraction.jpg");
-        addMovie("Central Intelligence", "Action", "/images/Actions/Central Intelligence.jpg");
+        addMovie("The Dark Knight", "Action", "/images/Movies/Actions/The dark night.jpg");
+        addMovie("The Beekeeper", "Action", "/images/Movies/Actions/The Beekeeper.jpg");
+        addMovie("John Wick 4", "Action", "/images/Movies/Actions/John Wick 4.jpg");
+        addMovie("Inception", "Action", "/images/Movies/Actions/inception.jpg");
+        addMovie("Hitman", "Action", "/images/Movies/Actions/hitman.jpg");
+        addMovie("Hell or High Water", "Action", "/images/Movies/Actions/Hell or High Water.jpg");
+        addMovie("Extraction", "Action", "/images/Movies/Actions/Extraction.jpg");
+        addMovie("Central Intelligence", "Action", "/images/Movies/Actions/Central Intelligence.jpg");
 
-        addMovie("Uncharted", "Adventure", "/images/Adventure/uncharted.jpg");
-        addMovie("The Legend of Tarzan", "Adventure", "/images/Adventure/trazen.jpg");
-        addMovie("The Tomorrow War", "Adventure", "/images/Adventure/The Tomorrow War.jpg");
-        addMovie("Shang-Chi and the Legend of the Ten Rings", "Adventure", "/images/Adventure/SHANG-CHI AND THE LEGEND OF THE TEN RINGS.jpg");
-        addMovie("Mission: Impossible", "Adventure", "/images/Adventure/mission impossible.jpg");
-        addMovie("Jurassic Park", "Adventure", "/images/Adventure/jurassic park.jpg");
-        addMovie("Jumanji", "Adventure", "/images/Adventure/jumanji.jpg");
-        addMovie("Dawn of the Planet of the Apes", "Adventure", "/images/Adventure/Dawn of the planet of apes.jpg");
+        addMovie("Uncharted", "Adventure", "/images/Movies/Adventure/uncharted.jpg");
+        addMovie("The Legend of Tarzan", "Adventure", "/images/Movies/Adventure/trazen.jpg");
+        addMovie("The Tomorrow War", "Adventure", "/images/Movies/Adventure/The Tomorrow War.jpg");
+        addMovie("Shang-Chi and the Legend of the Ten Rings", "Adventure", "/images/Movies/Adventure/SHANG-CHI AND THE LEGEND OF THE TEN RINGS.jpg");
+        addMovie("Mission: Impossible", "Adventure", "/images/Movies/Adventure/mission impossible.jpg");
+        addMovie("Jurassic Park", "Adventure", "/images/Movies/Adventure/jurassic park.jpg");
+        addMovie("Jumanji", "Adventure", "/images/Movies/Adventure/jumanji.jpg");
+        addMovie("Dawn of the Planet of the Apes", "Adventure", "/images/Movies/Adventure/Dawn of the planet of apes.jpg");
 
-        addMovie("Tron: Ares", "Sci-Fi", "/images/Sci-fi/Tron Ares.jpg");
-        addMovie("The Maze Runner: The Death Cure", "Sci-Fi", "/images/Sci-fi/The Maze Runner 3 The Death Cure.jpg");
-        addMovie("Tenet", "Sci-Fi", "/images/Sci-fi/Tenet.jpg");
-        addMovie("RoboCop", "Sci-Fi", "/images/Sci-fi/Robocop.jpg");
-        addMovie("Pacific Rim", "Sci-Fi", "/images/Sci-fi/pacific rim.jpg");
-        addMovie("Oblivion", "Sci-Fi", "/images/Sci-fi/oblivion.jpg");
-        addMovie("Elysium", "Sci-Fi", "/images/Sci-fi/Movie Elysium.jpg");
-        addMovie("Avengers: Endgame", "Sci-Fi", "/images/Sci-fi/avengers endgame.jpg");
+        addMovie("Tron: Ares", "Sci-Fi", "/images/Movies/Sci-Fi/Tron Ares.jpg");
+        addMovie("The Maze Runner: The Death Cure", "Sci-Fi", "/images/Movies/Sci-Fi/The Maze Runner 3 The Death Cure.jpg");
+        addMovie("Tenet", "Sci-Fi", "/images/Movies/Sci-Fi/Tenet.jpg");
+        addMovie("RoboCop", "Sci-Fi", "/images/Movies/Sci-Fi/Robocop.jpg");
+        addMovie("Pacific Rim", "Sci-Fi", "/images/Movies/Sci-Fi/pacific rim.jpg");
+        addMovie("Oblivion", "Sci-Fi", "/images/Movies/Sci-Fi/oblivion.jpg");
+        addMovie("Elysium", "Sci-Fi", "/images/Movies/Sci-Fi/Movie Elysium.jpg");
+        addMovie("Avengers: Endgame", "Sci-Fi", "/images/Movies/Sci-Fi/avengers endgame.jpg");
+
+        // TV poster resources belong in the matching genre folder; the filenames below define
+        // the exact paths collaborators can populate without changing the catalog.
+        addTvShow("Reacher", "Action", "/images/Tv Shows/Action/jack-reacher.jpg");
+        addTvShow("The Night Agent", "Action", "/images/Tv Shows/Action/the-night-agent.jpg");
+        addTvShow("The Terminal List", "Action", "/images/Tv Shows/Action/the-terminal-list.jpg");
+        addTvShow("Daredevil", "Action", "/images/Tv Shows/Action/dare-devil.jpg");
+        addTvShow("The Punisher", "Action", "/images/Tv Shows/Action/the-punisher.jpg");
+        addTvShow("Jack Ryan", "Action", "/images/Tv Shows/Action/jack-ryan.jpg");
+        addTvShow("24", "Action", "/images/Tv Shows/Action/24.jpg");
+        addTvShow("The Recruit", "Action", "/images/Tv Shows/Action/the-recruit.jpg");
+
+        addTvShow("One Piece", "Adventure", "/images/Tv Shows/Adventure/one-piece.jpg");
+        addTvShow("The Mandalorian", "Adventure", "/images/Tv Shows/Adventure/the-mandolorian.jpg");
+        addTvShow("The Witcher", "Adventure", "/images/Tv Shows/Adventure/the-witcher.jpg");
+        addTvShow("Lost", "Adventure", "/images/Tv Shows/Adventure/lost.jpg");
+        addTvShow("Avatar: The Last Airbender", "Adventure",
+                "/images/Tv Shows/Adventure/avatar-the-last-airbender.jpg");
+        addTvShow("Loki", "Adventure", "/images/Tv Shows/Adventure/loki.jpg");
+        addTvShow("The Last Kingdom", "Adventure", "/images/Tv Shows/Adventure/the-last-kingdom.jpg");
+        addTvShow("The 100", "Adventure", "/images/Tv Shows/Adventure/the-100.jpg");
+
+        addTvShow("Stranger Things", "Sci-Fi", "/images/Tv Shows/Sci-Fi/stranger-things.jpg");
+        addTvShow("The Expanse", "Sci-Fi", "/images/Tv Shows/Sci-Fi/the-expanse.jpg");
+        addTvShow("Foundation", "Sci-Fi", "/images/Tv Shows/Sci-Fi/foundation.jpg");
+        addTvShow("Severance", "Sci-Fi", "/images/Tv Shows/Sci-Fi/severance.jpg");
+        addTvShow("Dark", "Sci-Fi", "/images/Tv Shows/Sci-Fi/dark.jpg");
+        addTvShow("Black Mirror", "Sci-Fi", "/images/Tv Shows/Sci-Fi/balck-mirror.jpg");
+        addTvShow("Westworld", "Sci-Fi", "/images/Tv Shows/Sci-Fi/west-world.jpg");
+        addTvShow("Silo", "Sci-Fi", "/images/Tv Shows/Sci-Fi/silo.jpg");
 
         trendingMovies.addAll(categoryMovies("Action"));
         popularMovies.addAll(categoryMovies("Adventure"));
@@ -180,12 +213,26 @@ public class App extends Application {
         allMovies.add(new Movie(title, genre, "Feature", "PG-13", "", imagePath, 8.0));
     }
 
+    private void addTvShow(String title, String genre, String imagePath) {
+        allTvShows.add(new Movie(title, genre, "TV Series", "TV-14", "", imagePath, 8.0, true));
+    }
+
     private List<Movie> categoryMovies(String category) {
         List<Movie> movies = new ArrayList<>();
         for (Movie movie : allMovies) {
             if (movie.genre.equals(category)) movies.add(movie);
         }
         return movies;
+    }
+
+    private List<Movie> tvShowsByGenre(String genre) {
+        List<Movie> tvShows = new ArrayList<>();
+        for (Movie tvShow : allTvShows) {
+            if (tvShow.genre.equals(genre)) {
+                tvShows.add(tvShow);
+            }
+        }
+        return tvShows;
     }
 
     private void buildUI(Stage stage) {
@@ -488,8 +535,8 @@ public class App extends Application {
         VBox updates = new VBox(14);
         // These notices describe the external services and credential handling used by the app.
         updates.getChildren().addAll(
-                notificationItem("Movie details",
-                        "Cast, directors, languages, and ratings are provided by TMDB."),
+                notificationItem("Movie and TV details",
+                        "Cast, creators, languages, and ratings are provided by TMDB."),
                 notificationItem("Trailer playback",
                         "Trailers are embedded from YouTube. If playback is unavailable in the app, use the external-link button in the player."),
                 notificationItem("Your TMDB credential",
@@ -698,16 +745,28 @@ public class App extends Application {
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.getStyleClass().add("scroll-pane");
         scrollPane.setFitToWidth(true);
-        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        // Keep the new lower TV shelf reachable when the Home shelves exceed the window height.
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
 
         // Put poster shelves near the top, like the reference, without losing StreamFlix styling.
         VBox contentBox = new VBox(26);
         contentBox.setPadding(new Insets(16, 0, 40, 0));
+        Text moviesHeading = new Text("Movies");
+        moviesHeading.getStyleClass().add("section-title");
+        VBox.setMargin(moviesHeading, new Insets(0, 36, -12, 36));
         VBox trendingRow = createMovieRow("Trending Now", trendingMovies);
         VBox popularRow = createMovieRow("Popular in Adventure", popularMovies);
         VBox recentlyRow = createMovieRow("Recently Added in Sci-Fi", recentlyAdded);
+        Text tvHeading = new Text("TV Series");
+        tvHeading.getStyleClass().add("section-title");
+        VBox.setMargin(tvHeading, new Insets(12, 36, -12, 36));
+        // Each genre gets its own horizontal shelf with all eight matching TV series.
+        VBox actionTvRow = createMovieRow("Action TV Shows", tvShowsByGenre("Action"));
+        VBox adventureTvRow = createMovieRow("Adventure TV Shows", tvShowsByGenre("Adventure"));
+        VBox sciFiTvRow = createMovieRow("Sci-Fi TV Shows", tvShowsByGenre("Sci-Fi"));
 
-        contentBox.getChildren().addAll(trendingRow, popularRow, recentlyRow);
+        contentBox.getChildren().addAll(moviesHeading, trendingRow, popularRow, recentlyRow,
+                tvHeading, actionTvRow, adventureTvRow, sciFiTvRow);
 
         scrollPane.setContent(contentBox);
         homeScreen.getChildren().addAll(createTopBar(), scrollPane);
@@ -869,7 +928,9 @@ public class App extends Application {
         playOverlay.getStyleClass().add("play-overlay");
         playOverlay.setMaxSize(180, 270);
         playOverlay.setOpacity(0);
+        playOverlay.setMouseTransparent(true);
 
+        // Movies and TV series use the same centered Play overlay and card click behavior.
         Text playIcon = new Text("Play");
         playIcon.getStyleClass().add("play-icon");
         playOverlay.getChildren().add(playIcon);
@@ -897,11 +958,13 @@ public class App extends Application {
         fadeOut.setToValue(0);
 
         card.setOnMouseEntered(e -> {
+            playOverlay.setMouseTransparent(false);
             scaleIn.play(); fadeIn.play();
             card.setEffect(new DropShadow(20, Color.web(CYAN_ACCENT, 0.3)));
             card.setViewOrder(-1);
         });
         card.setOnMouseExited(e -> {
+            playOverlay.setMouseTransparent(true);
             scaleOut.play(); fadeOut.play();
             card.setEffect(null);
             card.setViewOrder(0);
@@ -972,7 +1035,7 @@ public class App extends Application {
                 "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z",
                 "player-back-button", "Back");
         backButton.setOnAction(e -> closePlayer());
-        playerTitleLabel = new Label("Movie Trailer");
+        playerTitleLabel = new Label("Trailer");
         playerTitleLabel.getStyleClass().add("player-title");
         HBox playerHeader = new HBox(18, backButton, playerTitleLabel);
         playerHeader.setAlignment(Pos.CENTER_LEFT);
@@ -1044,7 +1107,7 @@ public class App extends Application {
         if (tmdbApiKey == null) {
             tmdbApiKey = requestTmdbApiKey();
             if (tmdbApiKey == null) {
-                videoPlaceholder.setText("A TMDB API key is required to fetch movie trailers.");
+                videoPlaceholder.setText("A TMDB API key is required to fetch trailers.");
                 return;
             }
         }
@@ -1076,7 +1139,7 @@ public class App extends Application {
     private void fetchTrailer(Movie movie, String apiKey) {
         long requestId = ++trailerRequestId;
         // Keep network latency off the JavaFX thread; ignore results for a player that has since changed.
-        CompletableFuture.supplyAsync(() -> lookupTrailer(movie.title, apiKey))
+        CompletableFuture.supplyAsync(() -> lookupTrailer(movie, apiKey))
                 .whenComplete((youtubeKey, error) -> Platform.runLater(() -> {
                     if (requestId != trailerRequestId) {
                         return;
@@ -1104,10 +1167,12 @@ public class App extends Application {
                 }));
     }
 
-    private String lookupTrailer(String title, String apiKey) {
-        String movieId = findTmdbMovieId(title, apiKey);
+    // Choose the correct TMDB TV or movie routes while sharing trailer selection and playback.
+    private String lookupTrailer(Movie media, String apiKey) {
+        String mediaId = findTmdbMediaId(media, apiKey);
+        String mediaType = media.isTvShow ? "tv" : "movie";
         JsonObject videosResponse = getTmdbJson(
-                "https://api.themoviedb.org/3/movie/" + movieId + "/videos", apiKey);
+                "https://api.themoviedb.org/3/" + mediaType + "/" + mediaId + "/videos", apiKey);
         JsonArray videos = videosResponse.has("results")
                 ? videosResponse.getAsJsonArray("results") : new JsonArray();
         JsonObject firstTrailer = null;
@@ -1129,7 +1194,8 @@ public class App extends Application {
             }
         }
         if (firstTrailer == null) {
-            throw new TrailerLookupException("TMDB has no YouTube trailer available for " + title + ".");
+            throw new TrailerLookupException("TMDB has no YouTube trailer available for "
+                    + media.title + ".");
         }
 
         String youtubeKey = jsonString(firstTrailer, "key");
@@ -1140,10 +1206,13 @@ public class App extends Application {
         return youtubeKey;
     }
 
-    private MovieMetadata lookupMovieMetadata(String title, String apiKey) {
-        String movieId = findTmdbMovieId(title, apiKey);
+    // TMDB uses different date, creator, and runtime fields for TV series than for movies.
+    private MovieMetadata lookupMovieMetadata(Movie media, String apiKey) {
+        String mediaId = findTmdbMediaId(media, apiKey);
+        String mediaType = media.isTvShow ? "tv" : "movie";
         JsonObject details = getTmdbJson(
-                "https://api.themoviedb.org/3/movie/" + movieId + "?append_to_response=credits",
+                "https://api.themoviedb.org/3/" + mediaType + "/" + mediaId
+                        + "?append_to_response=credits",
                 apiKey);
         JsonObject credits = details.has("credits") && details.get("credits").isJsonObject()
                 ? details.getAsJsonObject("credits") : new JsonObject();
@@ -1151,39 +1220,71 @@ public class App extends Application {
         return new MovieMetadata(
                 jsonString(details, "overview"),
                 joinJsonValues(credits, "cast", "name", 6),
-                joinCrewDirectors(credits),
+                media.isTvShow
+                        ? joinJsonValues(details, "created_by", "name", 6)
+                        : joinCrewDirectors(credits),
                 joinJsonValues(details, "spoken_languages", "name", 0),
                 joinJsonValues(details, "genres", "name", 0),
-                jsonString(details, "release_date"),
-                details.has("runtime") && !details.get("runtime").isJsonNull()
-                        ? details.get("runtime").getAsString() + " min" : "",
+                jsonString(details, media.isTvShow ? "first_air_date" : "release_date"),
+                media.isTvShow ? tvSeriesLength(details)
+                        : details.has("runtime") && !details.get("runtime").isJsonNull()
+                                ? details.get("runtime").getAsString() + " min" : "",
                 details.has("vote_average") && !details.get("vote_average").isJsonNull()
                         ? String.format(java.util.Locale.ROOT, "%.1f / 10",
                                 details.get("vote_average").getAsDouble()) : "");
     }
 
-    private String findTmdbMovieId(String title, String apiKey) {
-        String encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8);
+    private String findTmdbMediaId(Movie media, String apiKey) {
+        String encodedTitle = URLEncoder.encode(media.title, StandardCharsets.UTF_8);
+        String mediaType = media.isTvShow ? "tv" : "movie";
+        String titleField = media.isTvShow ? "name" : "title";
         JsonObject searchResponse = getTmdbJson(
-                "https://api.themoviedb.org/3/search/movie?query=" + encodedTitle, apiKey);
+                "https://api.themoviedb.org/3/search/" + mediaType + "?query=" + encodedTitle,
+                apiKey);
         JsonArray results = searchResponse.has("results")
                 ? searchResponse.getAsJsonArray("results") : new JsonArray();
         if (results.size() == 0) {
-            throw new TrailerLookupException("TMDB did not find a movie titled \"" + title + "\".");
+            throw new TrailerLookupException("TMDB did not find a "
+                    + (media.isTvShow ? "TV show" : "movie") + " titled \""
+                    + media.title + "\".");
         }
 
-        JsonObject selectedMovie = results.get(0).getAsJsonObject();
+        JsonObject selectedMedia = results.get(0).getAsJsonObject();
         for (JsonElement result : results) {
             if (result.isJsonObject()
-                    && title.equalsIgnoreCase(jsonString(result.getAsJsonObject(), "title"))) {
-                selectedMovie = result.getAsJsonObject();
+                    && media.title.equalsIgnoreCase(
+                            jsonString(result.getAsJsonObject(), titleField))) {
+                selectedMedia = result.getAsJsonObject();
                 break;
             }
         }
-        if (!selectedMovie.has("id")) {
-            throw new TrailerLookupException("TMDB returned a movie without an ID.");
+        if (!selectedMedia.has("id")) {
+            throw new TrailerLookupException("TMDB returned a "
+                    + (media.isTvShow ? "TV show" : "movie") + " without an ID.");
         }
-        return selectedMovie.get("id").getAsString();
+        return selectedMedia.get("id").getAsString();
+    }
+
+    private static String tvSeriesLength(JsonObject details) {
+        List<String> values = new ArrayList<>();
+        int seasons = details.has("number_of_seasons")
+                ? details.get("number_of_seasons").getAsInt() : 0;
+        int episodes = details.has("number_of_episodes")
+                ? details.get("number_of_episodes").getAsInt() : 0;
+        if (seasons > 0) {
+            values.add(seasons + (seasons == 1 ? " season" : " seasons"));
+        }
+        if (episodes > 0) {
+            values.add(episodes + (episodes == 1 ? " episode" : " episodes"));
+        }
+        if (details.has("episode_run_time") && details.get("episode_run_time").isJsonArray()
+                && details.getAsJsonArray("episode_run_time").size() > 0) {
+            JsonElement runtime = details.getAsJsonArray("episode_run_time").get(0);
+            if (runtime.isJsonPrimitive()) {
+                values.add(runtime.getAsString() + " min per episode");
+            }
+        }
+        return String.join(", ", values);
     }
 
     private static String joinJsonValues(JsonObject object, String arrayName,
@@ -1361,11 +1462,18 @@ public class App extends Application {
         root.setLeft(null);
         mainStage.setTitle("StreamFlix - " + movie.title);
         movieDetailsContainer.getChildren().clear();
+        detailIsTvShow = movie.isTvShow;
 
         Button backButton = createPlayerButton(
                 "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z",
-                "player-back-button", "Back to movies");
-        backButton.setOnAction(e -> showHomeScreen());
+                "player-back-button", movie.isTvShow ? "Back to TV Shows" : "Back to Home");
+        backButton.setOnAction(e -> {
+            if (movie.isTvShow) {
+                showTVShowsScreen();
+            } else {
+                showHomeScreen();
+            }
+        });
 
         Button playButton = createPrimaryButton("Play Trailer");
         playButton.setOnAction(e -> openPlayer(movie));
@@ -1415,16 +1523,20 @@ public class App extends Application {
         detailOverviewLabel.setWrapText(true);
         detailOverviewLabel.setMaxWidth(Double.MAX_VALUE);
 
-        Label creditsHeading = new Label("Cast & crew");
+        Label creditsHeading = new Label(movie.isTvShow ? "Cast & creators" : "Cast & crew");
         creditsHeading.getStyleClass().add("detail-section-heading");
         detailCastLabel = createDetailValue("Cast", "Loading...");
-        detailDirectorLabel = createDetailValue("Director", "Loading...");
+        detailDirectorLabel = createDetailValue(
+                movie.isTvShow ? "Creators" : "Director", "Loading...");
         detailLanguagesLabel = createDetailValue("Languages", "Loading...");
         detailGenresLabel = createDetailValue("Genres", movie.genre);
-        detailReleaseLabel = createDetailValue("Release", "Loading...");
-        detailRuntimeLabel = createDetailValue("Runtime", movie.duration);
+        detailReleaseLabel = createDetailValue(
+                movie.isTvShow ? "First aired" : "Release", "Loading...");
+        detailRuntimeLabel = createDetailValue(
+                movie.isTvShow ? "Seasons / episodes" : "Runtime", movie.duration);
         detailRatingLabel = createDetailValue("TMDB rating", "Loading...");
-        detailMetadataStatusLabel = new Label("Loading movie information from TMDB...");
+        detailMetadataStatusLabel = new Label("Loading "
+                + (movie.isTvShow ? "TV show" : "movie") + " information from TMDB...");
         detailMetadataStatusLabel.getStyleClass().add("detail-metadata-status");
         detailMetadataStatusLabel.setWrapText(true);
 
@@ -1448,7 +1560,8 @@ public class App extends Application {
 
     private void loadMovieDetails(Movie movie) {
         long requestId = ++detailRequestId;
-        MovieMetadata cachedMetadata = movieMetadataCache.get(movie.title);
+        String metadataKey = metadataCacheKey(movie);
+        MovieMetadata cachedMetadata = movieMetadataCache.get(metadataKey);
         if (cachedMetadata != null) {
             applyMovieMetadata(cachedMetadata);
             return;
@@ -1459,13 +1572,15 @@ public class App extends Application {
         }
         if (tmdbApiKey == null) {
             detailMetadataStatusLabel.setText(
-                    "TMDB key not entered. Select this movie again to load its cast and details.");
+                    "TMDB key not entered. Select this "
+                            + (movie.isTvShow ? "TV show" : "movie")
+                            + " again to load its cast and details.");
             setDetailLoadingValues("Not available");
             return;
         }
 
         String apiKey = tmdbApiKey;
-        CompletableFuture.supplyAsync(() -> lookupMovieMetadata(movie.title, apiKey))
+        CompletableFuture.supplyAsync(() -> lookupMovieMetadata(movie, apiKey))
                 .whenComplete((metadata, error) -> Platform.runLater(() -> {
                     if (requestId != detailRequestId) {
                         return;
@@ -1480,30 +1595,39 @@ public class App extends Application {
                         setDetailLoadingValues("Not available");
                         return;
                     }
-                    movieMetadataCache.put(movie.title, metadata);
+                    movieMetadataCache.put(metadataKey, metadata);
                     applyMovieMetadata(metadata);
                 }));
     }
 
+    private static String metadataCacheKey(Movie media) {
+        return (media.isTvShow ? "tv:" : "movie:") + media.title;
+    }
+
     private void setDetailLoadingValues(String value) {
         detailCastLabel.setText("Cast: " + value);
-        detailDirectorLabel.setText("Director: " + value);
+        detailDirectorLabel.setText((detailIsTvShow ? "Creators: " : "Director: ") + value);
         detailLanguagesLabel.setText("Languages: " + value);
         detailGenresLabel.setText("Genres: " + value);
-        detailReleaseLabel.setText("Release: " + value);
-        detailRuntimeLabel.setText("Runtime: " + value);
+        detailReleaseLabel.setText((detailIsTvShow ? "First aired: " : "Release: ") + value);
+        detailRuntimeLabel.setText(
+                (detailIsTvShow ? "Seasons / episodes: " : "Runtime: ") + value);
         detailRatingLabel.setText("TMDB rating: " + value);
     }
 
     private void applyMovieMetadata(MovieMetadata metadata) {
         detailOverviewLabel.setText(metadata.overview.isEmpty()
-                ? "No overview is available for this movie." : metadata.overview);
+                ? "No overview is available for this "
+                        + (detailIsTvShow ? "TV show." : "movie.") : metadata.overview);
         detailCastLabel.setText("Cast: " + displayOrUnavailable(metadata.cast));
-        detailDirectorLabel.setText("Director: " + displayOrUnavailable(metadata.directors));
+        detailDirectorLabel.setText((detailIsTvShow ? "Creators: " : "Director: ")
+                + displayOrUnavailable(metadata.directors));
         detailLanguagesLabel.setText("Languages: " + displayOrUnavailable(metadata.languages));
         detailGenresLabel.setText("Genres: " + displayOrUnavailable(metadata.genres));
-        detailReleaseLabel.setText("Release: " + displayOrUnavailable(metadata.releaseDate));
-        detailRuntimeLabel.setText("Runtime: " + displayOrUnavailable(metadata.runtime));
+        detailReleaseLabel.setText((detailIsTvShow ? "First aired: " : "Release: ")
+                + displayOrUnavailable(metadata.releaseDate));
+        detailRuntimeLabel.setText((detailIsTvShow ? "Seasons / episodes: " : "Runtime: ")
+                + displayOrUnavailable(metadata.runtime));
         detailRatingLabel.setText("TMDB rating: " + displayOrUnavailable(metadata.rating));
         detailMetadataStatusLabel.setText("");
     }
@@ -1547,7 +1671,7 @@ public class App extends Application {
             emptyBox.setPadding(new Insets(100, 0, 100, 0));
             Text emptyText = new Text("Your watchlist is empty");
             emptyText.getStyleClass().add("empty-title");
-            Text emptySub = new Text("Movies you add will appear here.");
+            Text emptySub = new Text("Movies and TV shows you add will appear here.");
             emptySub.getStyleClass().add("empty-subtitle");
             emptyBox.getChildren().addAll(emptyText, emptySub);
             container.getChildren().add(emptyBox);
@@ -1712,11 +1836,11 @@ public class App extends Application {
 
         VBox details = new VBox(14,
                 notificationItem("Information and credentials",
-                        "Movie searches and details are requested from TMDB. Any TMDB API key or read token entered for this app remains in memory for the current session and is not saved."),
+                        "Movie and TV searches and details are requested from TMDB. Any TMDB API key or read token entered for this app remains in memory for the current session and is not saved."),
                 notificationItem("Watchlist and playback preference",
                         "Your watchlist and selected playback quality are held in app memory for the current run. This demo does not create an account or process payments."),
                 notificationItem("Third-party services",
-                        "Trailers may be embedded from YouTube, and movie information comes from TMDB. These providers may handle connection or usage data under their own privacy policies and terms."),
+                        "Trailers may be embedded from YouTube, and movie and TV information comes from TMDB. These providers may handle connection or usage data under their own privacy policies and terms."),
                 notificationItem("Your choice",
                         "If you do not agree with these conditions, do not use the features that connect to TMDB or YouTube. You can close the app at any time."));
 
@@ -1776,11 +1900,22 @@ public class App extends Application {
         Text title = new Text("TV Shows");
         title.getStyleClass().add("screen-title");
 
-        FlowPane grid = new FlowPane(20, 20);
-        for (Movie movie : allMovies.subList(0, 6)) {
-            grid.getChildren().add(createMovieCard(movie));
+        content.getChildren().add(title);
+        // Keep five matching TV cards together under each of the three movie genres.
+        for (String genre : new String[] {"Action", "Adventure", "Sci-Fi"}) {
+            VBox genreSection = new VBox(15);
+            Text genreTitle = new Text(genre + " TV Shows");
+            genreTitle.getStyleClass().add("section-title");
+
+            FlowPane grid = new FlowPane(20, 20);
+            for (Movie tvShow : allTvShows) {
+                if (genre.equals(tvShow.genre)) {
+                    grid.getChildren().add(createMovieCard(tvShow));
+                }
+            }
+            genreSection.getChildren().addAll(genreTitle, grid);
+            content.getChildren().add(genreSection);
         }
-        content.getChildren().addAll(title, grid);
         scrollPane.setContent(content);
         tvShowsScreen.getChildren().add(scrollPane);
     }
@@ -1817,7 +1952,11 @@ public class App extends Application {
     private void showSettingsScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(settingsScreen); }
 
     private Image loadPoster(String resourcePath) {
-        return new Image(getClass().getResource(resourcePath).toExternalForm(), true);
+        java.net.URL posterResource = getClass().getResource(resourcePath);
+        // TV poster files are supplied separately; keep their cards usable until those files arrive.
+        return posterResource == null
+                ? new javafx.scene.image.WritableImage(1, 1)
+                : new Image(posterResource.toExternalForm(), true);
     }
 
     private Button createPrimaryButton(String text) {
@@ -1895,11 +2034,18 @@ public class App extends Application {
     private static class Movie {
         String title, genre, duration, rating, description, imageUrl;
         double ratingScore;
+        boolean isTvShow;
 
         Movie(String title, String genre, String duration, String rating, String description, String imageUrl, double ratingScore) {
+            this(title, genre, duration, rating, description, imageUrl, ratingScore, false);
+        }
+
+        Movie(String title, String genre, String duration, String rating, String description,
+                String imageUrl, double ratingScore, boolean isTvShow) {
             this.title = title; this.genre = genre; this.duration = duration;
             this.rating = rating; this.description = description; this.imageUrl = imageUrl;
             this.ratingScore = ratingScore;
+            this.isTvShow = isTvShow;
         }
     }
 }
