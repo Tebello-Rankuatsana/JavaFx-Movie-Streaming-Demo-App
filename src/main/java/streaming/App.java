@@ -1897,20 +1897,25 @@ public class App extends Application {
 
         VBox content = new VBox(30);
         content.setPadding(new Insets(40, 50, 60, 50));
+        content.setAlignment(Pos.TOP_LEFT);
         Text title = new Text("TV Shows");
         title.getStyleClass().add("screen-title");
 
         content.getChildren().add(title);
-        // Keep five matching TV cards together under each of the three movie genres.
+        // Show five series per genre here; the full eight-title shelves remain available on Home.
         for (String genre : new String[] {"Action", "Adventure", "Sci-Fi"}) {
             VBox genreSection = new VBox(15);
+            genreSection.setAlignment(Pos.TOP_LEFT);
             Text genreTitle = new Text(genre + " TV Shows");
             genreTitle.getStyleClass().add("section-title");
 
             FlowPane grid = new FlowPane(20, 20);
+            grid.setAlignment(Pos.TOP_CENTER);
+            int shownCount = 0;
             for (Movie tvShow : allTvShows) {
-                if (genre.equals(tvShow.genre)) {
+                if (genre.equals(tvShow.genre) && shownCount < 5) {
                     grid.getChildren().add(createMovieCard(tvShow));
+                    shownCount++;
                 }
             }
             genreSection.getChildren().addAll(genreTitle, grid);
@@ -1929,14 +1934,30 @@ public class App extends Application {
 
         VBox content = new VBox(30);
         content.setPadding(new Insets(40, 50, 60, 50));
+        content.setAlignment(Pos.TOP_LEFT);
         Text title = new Text("Movies");
         title.getStyleClass().add("screen-title");
 
-        FlowPane grid = new FlowPane(20, 20);
-        for (Movie movie : allMovies) {
-            grid.getChildren().add(createMovieCard(movie));
+        content.getChildren().add(title);
+        // Split the catalog into genre sections so movie categories are easy to distinguish.
+        for (String genre : new String[] {"Action", "Adventure", "Sci-Fi"}) {
+            VBox genreSection = new VBox(15);
+            genreSection.setAlignment(Pos.TOP_LEFT);
+            Text genreTitle = new Text(genre + " Movies");
+            genreTitle.getStyleClass().add("section-title");
+
+            FlowPane grid = new FlowPane(20, 20);
+            grid.setAlignment(Pos.TOP_CENTER);
+            int shownCount = 0;
+            for (Movie movie : allMovies) {
+                if (genre.equals(movie.genre) && shownCount < 5) {
+                    grid.getChildren().add(createMovieCard(movie));
+                    shownCount++;
+                }
+            }
+            genreSection.getChildren().addAll(genreTitle, grid);
+            content.getChildren().add(genreSection);
         }
-        content.getChildren().addAll(title, grid);
         scrollPane.setContent(content);
         moviesScreen.getChildren().add(scrollPane);
     }
