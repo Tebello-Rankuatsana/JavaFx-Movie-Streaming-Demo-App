@@ -28,7 +28,7 @@ YouTube trailers directly inside the app.
 
 ## 2. Non-Negotiable Assignment Rules
 
-These come straight from the brief. **A PR that breaks any of these will be rejected**, even
+**A PR that breaks any of these will be rejected**, even
 if the code is otherwise good.
 
 1. **Do NOT use `javafx.scene.control.Button`.** Anywhere. Ever.
