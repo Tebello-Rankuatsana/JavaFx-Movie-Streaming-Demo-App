@@ -271,6 +271,7 @@ public class App extends Application {
         scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
 
         stage.setTitle("StreamFlix - Premium Stream");
+        stage.getIcons().add(new Image(getClass().getResource("/images/logo.jpeg").toExternalForm()));
         stage.setScene(scene);
         stage.setMinWidth(Math.min(800, windowWidth));
         stage.setMinHeight(Math.min(500, windowHeight));
@@ -289,22 +290,17 @@ public class App extends Application {
         side.setPadding(new Insets(22, 14, 22, 14));
 
         StackPane logoIcon = new StackPane();
-        Rectangle logoTile = new Rectangle(48, 48, Color.web(CYAN_ACCENT));
-        logoTile.setArcWidth(16);
-        logoTile.setArcHeight(16);
-        logoTile.setStroke(Color.web(GOLD_ACCENT));
-        logoTile.setStrokeWidth(1.5);
-        logoTile.setEffect(new DropShadow(12, Color.web(CYAN_ACCENT, 0.3)));
-        logoIcon.getChildren().add(logoTile);
-        Text logoLetter = new Text("SF");
-        logoLetter.getStyleClass().add("sidebar-logo-letter");
-        logoIcon.getChildren().add(logoLetter);
-        Rectangle logoAccent = new Rectangle(18, 2.5, Color.web(GOLD_ACCENT));
-        logoAccent.setArcWidth(3);
-        logoAccent.setArcHeight(3);
-        StackPane.setAlignment(logoAccent, Pos.BOTTOM_CENTER);
-        StackPane.setMargin(logoAccent, new Insets(0, 0, 9, 0));
-        logoIcon.getChildren().add(logoAccent);
+        ImageView logoImage = new ImageView(new Image(
+                getClass().getResource("/images/logo.jpeg").toExternalForm()));
+        logoImage.setFitWidth(48);
+        logoImage.setFitHeight(48);
+        logoImage.setPreserveRatio(true);
+        Rectangle logoClip = new Rectangle(48, 48);
+        logoClip.setArcWidth(16);
+        logoClip.setArcHeight(16);
+        logoImage.setClip(logoClip);
+        //logoImage.setEffect(new DropShadow(12, Color.web(CYAN_ACCENT, 0.3)));
+        logoIcon.getChildren().add(logoImage);
         Tooltip.install(logoIcon, new Tooltip("StreamFlix"));
         logoIcon.setPadding(new Insets(0, 0, 24, 0));
 
