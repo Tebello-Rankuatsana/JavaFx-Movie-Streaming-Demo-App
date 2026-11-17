@@ -957,10 +957,7 @@ public class App extends Application {
         posterPane.setMinWidth(180);
         posterPane.setMinHeight(270);
 
-        ImageView posterImage = new ImageView(loadPoster(movie.imageUrl));
-        posterImage.setFitWidth(180);
-        posterImage.setFitHeight(270);
-        posterImage.setPreserveRatio(true);
+        ImageView posterImage = createPosterImageView(movie.imageUrl, 180, 270);
 
         // Strict Clipping
         Rectangle clip = new Rectangle(180, 270);
@@ -1548,10 +1545,7 @@ public class App extends Application {
         hero.setAlignment(Pos.TOP_LEFT);
         hero.getStyleClass().add("movie-detail-hero");
         hero.setPadding(new Insets(30));
-        ImageView posterImage = new ImageView(loadPoster(movie.imageUrl));
-        posterImage.setFitWidth(300);
-        posterImage.setFitHeight(450);
-        posterImage.setPreserveRatio(true);
+        ImageView posterImage = createPosterImageView(movie.imageUrl, 300, 450);
         Rectangle clip = new Rectangle(300, 450);
         clip.setArcWidth(20);
         clip.setArcHeight(20);
@@ -1731,10 +1725,7 @@ public class App extends Application {
                 row.setAlignment(Pos.CENTER_LEFT);
                 row.setPadding(new Insets(15, 20, 15, 20));
 
-                ImageView miniPoster = new ImageView(loadPoster(movie.imageUrl));
-                miniPoster.setFitWidth(70);
-                miniPoster.setFitHeight(105);
-                miniPoster.setPreserveRatio(true);
+                ImageView miniPoster = createPosterImageView(movie.imageUrl, 70, 105);
                 Rectangle clip = new Rectangle(70, 105);
                 clip.setArcWidth(10); clip.setArcHeight(10);
                 miniPoster.setClip(clip);
@@ -2044,6 +2035,41 @@ public class App extends Application {
         return posterResource == null
                 ? new javafx.scene.image.WritableImage(1, 1)
                 : new Image(posterResource.toExternalForm(), true);
+    }
+
+    private ImageView createPosterImageView(String resourcePath, double width, double height) {
+        Image image = loadPoster(resourcePath);
+        ImageView imageView = new ImageView(image);
+        imageView.setFitWidth(width);
+        imageView.setFitHeight(height);
+        imageView.setPreserveRatio(true);
+        imageView.setSmooth(true);
+
+        Runnable cropToFrame = () -> {
+            double imageWidth = image.getWidth();
+            double imageHeight = image.getHeight();
+            if (imageWidth <= 0 || imageHeight <= 0) return;
+
+            double frameRatio = width / height;
+            double imageRatio = imageWidth / imageHeight;
+            double viewportWidth = imageWidth;
+            double viewportHeight = imageHeight;
+            if (imageRatio > frameRatio) {
+                viewportWidth = imageHeight * frameRatio;
+            } else {
+                viewportHeight = imageWidth / frameRatio;
+            }
+
+            imageView.setViewport(new Rectangle2D(
+                    (imageWidth - viewportWidth) / 2,
+                    (imageHeight - viewportHeight) / 2,
+                    viewportWidth,
+                    viewportHeight));
+        };
+        cropToFrame.run();
+        image.widthProperty().addListener((observable, oldWidth, newWidth) -> cropToFrame.run());
+        image.heightProperty().addListener((observable, oldHeight, newHeight) -> cropToFrame.run());
+        return imageView;
     }
 
     private Button createPrimaryButton(String text) {
