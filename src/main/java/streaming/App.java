@@ -1834,12 +1834,7 @@ public class App extends Application {
         subtitleText.getStyleClass().add("setting-subtitle");
         textBox.getChildren().addAll(titleText, subtitleText);
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        Text arrow = new Text(">");
-        arrow.getStyleClass().add("setting-arrow");
-
-        item.getChildren().addAll(textBox, spacer, arrow);
+        item.getChildren().add(textBox);
         item.setOnMouseEntered(e -> item.getStyleClass().add("setting-item-hover"));
         item.setOnMouseExited(e -> item.getStyleClass().remove("setting-item-hover"));
         item.setOnMouseClicked(e -> action.run());
