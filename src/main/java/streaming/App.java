@@ -15,8 +15,15 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
+import javafx.animation.Animation;
 import javafx.animation.FadeTransition;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.ParallelTransition;
+import javafx.animation.PauseTransition;
 import javafx.animation.ScaleTransition;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -33,9 +40,11 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.effect.ColorAdjust;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.Node;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
@@ -137,6 +146,9 @@ public class App extends Application {
     private String tmdbApiKey;
     private String currentYoutubeKey;
     private long trailerRequestId;
+    private FadeTransition loadingPulse;
+    private PauseTransition playerLoadTimeout;
+    private boolean playerClosing;
 
     public static void main(String[] args) {
         launch(args);
@@ -520,7 +532,7 @@ public class App extends Application {
         notificationsBackButton.setTooltip(new Tooltip(backLabel));
         notificationsBackButton.setAccessibleText(backLabel);
         root.setLeft(sidebar);
-        contentArea.getChildren().setAll(notificationsScreen);
+        transitionToScreen(notificationsScreen);
         mainStage.setTitle("StreamFlix - Updates & Terms");
     }
 
@@ -659,7 +671,7 @@ public class App extends Application {
         content.getChildren().addAll(backButton, title, identity, profileDetails);
         scrollPane.setContent(content);
         screen.getChildren().add(scrollPane);
-        contentArea.getChildren().setAll(screen);
+        transitionToScreen(screen);
     }
 
     private VBox profileField(String labelText, TextField input) {
@@ -991,23 +1003,35 @@ public class App extends Application {
         // Hover Animations
         ScaleTransition scaleIn = new ScaleTransition(Duration.millis(200), card);
         scaleIn.setToX(1.05); scaleIn.setToY(1.05);
+        scaleIn.setInterpolator(Interpolator.EASE_BOTH);
         ScaleTransition scaleOut = new ScaleTransition(Duration.millis(200), card);
         scaleOut.setToX(1.0); scaleOut.setToY(1.0);
+        scaleOut.setInterpolator(Interpolator.EASE_BOTH);
 
         FadeTransition fadeIn = new FadeTransition(Duration.millis(200), playOverlay);
         fadeIn.setToValue(1);
         FadeTransition fadeOut = new FadeTransition(Duration.millis(200), playOverlay);
         fadeOut.setToValue(0);
+        ColorAdjust posterBrightness = new ColorAdjust();
+        posterImage.setEffect(posterBrightness);
+        Timeline brightenPoster = new Timeline(new KeyFrame(Duration.millis(220),
+                new KeyValue(posterBrightness.brightnessProperty(), 0.08, Interpolator.EASE_BOTH)));
+        Timeline restorePosterBrightness = new Timeline(new KeyFrame(Duration.millis(220),
+                new KeyValue(posterBrightness.brightnessProperty(), 0, Interpolator.EASE_BOTH)));
 
         card.setOnMouseEntered(e -> {
             playOverlay.setMouseTransparent(false);
-            scaleIn.play(); fadeIn.play();
+            scaleIn.playFromStart();
+            fadeIn.playFromStart();
+            brightenPoster.playFromStart();
             card.setEffect(new DropShadow(20, Color.web(CYAN_ACCENT, 0.3)));
             card.setViewOrder(-1);
         });
         card.setOnMouseExited(e -> {
             playOverlay.setMouseTransparent(true);
-            scaleOut.play(); fadeOut.play();
+            scaleOut.playFromStart();
+            fadeOut.playFromStart();
+            restorePosterBrightness.playFromStart();
             card.setEffect(null);
             card.setViewOrder(0);
         });
@@ -1064,8 +1088,12 @@ public class App extends Application {
 
         videoContainer.getChildren().addAll(trailerWebView, videoPlaceholder, playbackErrorLabel);
         trailerWebView.getEngine().getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
-            if (newState == javafx.concurrent.Worker.State.FAILED
-                    && trailerWebView.isVisible()) {
+            if (newState == javafx.concurrent.Worker.State.SUCCEEDED
+                    && trailerWebView.isVisible() && currentYoutubeKey != null) {
+                stopPlayerLoading();
+                videoPlaceholder.setVisible(false);
+            } else if (newState == javafx.concurrent.Worker.State.FAILED
+                    && trailerWebView.isVisible() && currentYoutubeKey != null) {
                 showPlaybackError("The embedded YouTube player could not load. Use Open in browser to watch this trailer.");
             }
         });
@@ -1129,6 +1157,7 @@ public class App extends Application {
     }
 
     private void openPlayer(Movie movie) {
+        playerClosing = false;
         root.setLeft(null);
         previousWindowTitle = mainStage.getTitle();
         trailerRequestId++;
@@ -1137,18 +1166,23 @@ public class App extends Application {
         currentYoutubeKey = null;
         openTrailerButton.setDisable(true);
         playerTitleLabel.setText(movie.title);
-        videoPlaceholder.setText("Looking up the trailer for " + movie.title + "...");
-        videoPlaceholder.setVisible(true);
+        startPlayerLoading("Looking up the trailer for " + movie.title + "...");
         playbackErrorLabel.setVisible(false);
         StackPane.setAlignment(playerScrim, Pos.CENTER);
         StackPane.setAlignment(mediaPlayerScreen, Pos.CENTER);
+        playerScrim.setOpacity(0);
+        mediaPlayerScreen.setOpacity(0);
         contentArea.getChildren().addAll(playerScrim, mediaPlayerScreen);
+        ParallelTransition playerEntrance = new ParallelTransition(
+                fadeIn(playerScrim), fadeIn(mediaPlayerScreen));
+        playerEntrance.play();
         mainStage.setTitle("StreamFlix - " + movie.title);
 
         // Ask on the first trailer request only; cancelling leaves the key unset so it can be retried.
         if (tmdbApiKey == null) {
             tmdbApiKey = requestTmdbApiKey();
             if (tmdbApiKey == null) {
+                stopPlayerLoading();
                 videoPlaceholder.setText("A TMDB API key is required to fetch trailers.");
                 return;
             }
@@ -1197,11 +1231,18 @@ public class App extends Application {
                         showPlaybackError(cause.getMessage());
                         return;
                     }
-                    videoPlaceholder.setVisible(false);
                     playbackErrorLabel.setVisible(false);
                     currentYoutubeKey = youtubeKey;
                     openTrailerButton.setDisable(false);
+                    startPlayerLoading("Loading trailer...");
                     trailerWebView.setVisible(true);
+                    playerLoadTimeout = new PauseTransition(Duration.seconds(30));
+                    playerLoadTimeout.setOnFinished(timeout -> {
+                        if (currentYoutubeKey != null && trailerWebView.isVisible()) {
+                            showPlaybackError("The embedded YouTube player is taking too long to load. Use Open in browser to watch this trailer.");
+                        }
+                    });
+                    playerLoadTimeout.playFromStart();
                     // Only the trailer ID goes to YouTube; the TMDB API key is not included in this URL.
                     trailerWebView.getEngine().load(
                             "https://www.youtube-nocookie.com/embed/" + youtubeKey
@@ -1439,7 +1480,12 @@ public class App extends Application {
     }
 
     private void closePlayer() {
+        if (playerClosing) {
+            return;
+        }
+        playerClosing = true;
         trailerRequestId++;
+        stopPlayerLoading();
         trailerWebView.getEngine().load("about:blank");
         trailerWebView.setVisible(false);
         currentYoutubeKey = null;
@@ -1447,12 +1493,20 @@ public class App extends Application {
         if (mainStage.isFullScreen()) {
             mainStage.setFullScreen(false);
         }
-        contentArea.getChildren().removeAll(mediaPlayerScreen, playerScrim);
         mainStage.setTitle(previousWindowTitle == null
                 ? "StreamFlix - Premium Stream" : previousWindowTitle);
+        ParallelTransition playerExit = new ParallelTransition(
+                fadeOut(mediaPlayerScreen), fadeOut(playerScrim));
+        playerExit.setOnFinished(e -> {
+            contentArea.getChildren().removeAll(mediaPlayerScreen, playerScrim);
+            mediaPlayerScreen.setOpacity(1);
+            playerScrim.setOpacity(1);
+        });
+        playerExit.play();
     }
 
     private void showPlaybackError(String message) {
+        stopPlayerLoading();
         playbackErrorLabel.setText(message == null || message.isEmpty()
                 ? "Unable to load this trailer." : message);
         playbackErrorLabel.setVisible(true);
@@ -1586,7 +1640,7 @@ public class App extends Application {
         hero.getChildren().addAll(posterImage, infoBox);
         movieDetailsContainer.getChildren().addAll(pageHeader, hero);
 
-        contentArea.getChildren().setAll(movieDetailsScreen);
+        transitionToScreen(movieDetailsScreen);
         loadMovieDetails(movie);
     }
 
@@ -1873,7 +1927,7 @@ public class App extends Application {
 
         VBox details = new VBox(18, description, qualityHeading, qualityOptions);
         VBox settings = createSettingsDetailScreen("Playback", details);
-        contentArea.getChildren().setAll(settings);
+        transitionToScreen(settings);
     }
 
     private void showPrivacySettings() {
@@ -1905,7 +1959,7 @@ public class App extends Application {
         details.getChildren().addAll(termsHeading, termsLinks);
         VBox privacyContent = new VBox(18, introduction, details);
         VBox settings = createSettingsDetailScreen("Privacy & Service Terms", privacyContent);
-        contentArea.getChildren().setAll(settings);
+        transitionToScreen(settings);
     }
 
     private VBox createSettingsDetailScreen(String title, VBox details) {
@@ -2013,12 +2067,61 @@ public class App extends Application {
     // =========================================================================
     // SCREEN SWITCHING & REUSABLE BUTTONS
     // =========================================================================
-    private void showHomeScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(homeScreen); }
-    private void showMoviesScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(moviesScreen); }
-    private void showTVShowsScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(tvShowsScreen); }
-    private void showCategoriesScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(categoriesScreen); }
-    private void showWatchlistScreen() { root.setLeft(sidebar); refreshWatchlistScreen(); contentArea.getChildren().setAll(watchlistScreen); }
-    private void showSettingsScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(settingsScreen); }
+    private void showHomeScreen() { root.setLeft(sidebar); transitionToScreen(homeScreen); }
+    private void showMoviesScreen() { root.setLeft(sidebar); transitionToScreen(moviesScreen); }
+    private void showTVShowsScreen() { root.setLeft(sidebar); transitionToScreen(tvShowsScreen); }
+    private void showCategoriesScreen() { root.setLeft(sidebar); transitionToScreen(categoriesScreen); }
+    private void showWatchlistScreen() { root.setLeft(sidebar); refreshWatchlistScreen(); transitionToScreen(watchlistScreen); }
+    private void showSettingsScreen() { root.setLeft(sidebar); transitionToScreen(settingsScreen); }
+
+    private void transitionToScreen(Node screen) {
+        contentArea.getChildren().setAll(screen);
+        FadeTransition transition = fadeIn(screen);
+        transition.play();
+    }
+
+    private FadeTransition fadeIn(Node node) {
+        FadeTransition transition = new FadeTransition(Duration.millis(260), node);
+        transition.setFromValue(0);
+        transition.setToValue(1);
+        transition.setInterpolator(Interpolator.EASE_BOTH);
+        return transition;
+    }
+
+    private FadeTransition fadeOut(Node node) {
+        FadeTransition transition = new FadeTransition(Duration.millis(240), node);
+        transition.setFromValue(node.getOpacity());
+        transition.setToValue(0);
+        transition.setInterpolator(Interpolator.EASE_BOTH);
+        return transition;
+    }
+
+    private void startPlayerLoading(String message) {
+        stopPlayerLoading();
+        videoPlaceholder.setText(message);
+        videoPlaceholder.setVisible(true);
+        videoPlaceholder.setOpacity(1);
+        loadingPulse = new FadeTransition(Duration.millis(700), videoPlaceholder);
+        loadingPulse.setFromValue(1);
+        loadingPulse.setToValue(0.58);
+        loadingPulse.setAutoReverse(true);
+        loadingPulse.setCycleCount(Animation.INDEFINITE);
+        loadingPulse.playFromStart();
+    }
+
+    private void stopPlayerLoading() {
+        if (loadingPulse != null) {
+            loadingPulse.stop();
+            loadingPulse = null;
+        }
+        if (playerLoadTimeout != null) {
+            playerLoadTimeout.stop();
+            playerLoadTimeout = null;
+        }
+        if (videoPlaceholder != null) {
+            videoPlaceholder.setOpacity(1);
+        }
+    }
 
     private Image loadPoster(String resourcePath) {
         java.net.URL posterResource = getClass().getResource(resourcePath);
