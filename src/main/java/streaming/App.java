@@ -15,6 +15,11 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import javafx.animation.FadeTransition;
 import javafx.animation.ScaleTransition;
 import javafx.application.Application;
@@ -22,7 +27,10 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
+import javafx.geometry.VPos;
 import javafx.scene.Scene;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
@@ -33,8 +41,6 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.effect.DropShadow;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
@@ -52,24 +58,18 @@ import javafx.scene.paint.Stop;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
-import javafx.scene.text.Text;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
-import javafx.geometry.VPos;
+import javafx.scene.web.WebView;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import javafx.scene.web.WebView;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 public class App extends Application {
 
-    // --- Theme Constants ---
+    // Theme Constants 
     private static final String TEAL_BG = "#0B1A26";
     private static final String TEAL_PANEL = "#132A38";
     private static final String CYAN_ACCENT = "#00D2FF";
@@ -77,12 +77,12 @@ public class App extends Application {
     private static final String TEXT_MUTED = "#8B9EB0";
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
-    // --- Layout Managers ---
+    //  Layout Managers 
     private BorderPane root;
     private StackPane contentArea;
     private VBox sidebar;
 
-    // --- Screens ---
+    // Screens 
     private VBox homeScreen;
     private VBox movieDetailsScreen;
     private VBox movieDetailsContainer;
@@ -103,7 +103,7 @@ public class App extends Application {
     private VBox tvShowsScreen;
     private VBox moviesScreen;
     private BorderPane mediaPlayerScreen;
-    // --- Data Models ---
+    // Data Models 
     private final List<Movie> allMovies = new ArrayList<>();
     private final List<Movie> watchlist = new ArrayList<>();
     private final List<Movie> trendingMovies = new ArrayList<>();
@@ -111,7 +111,7 @@ public class App extends Application {
     private final List<Movie> popularMovies = new ArrayList<>();
     private final Map<String, MovieMetadata> movieMetadataCache = new HashMap<>();
 
-    // --- Media Player State ---
+    // Media Player State 
     private Stage mainStage;
     private StackPane videoContainer;
     private Region playerScrim;
@@ -255,9 +255,8 @@ public class App extends Application {
         return icon;
     }
 
-    // =========================================================================
-    // SIDEBAR
-    // =========================================================================
+    
+    // SIDEBAR 
     private VBox createSidebar() {
         VBox side = new VBox(10);
         side.getStyleClass().add("sidebar");
@@ -386,9 +385,9 @@ public class App extends Application {
         }
     }
 
-    // =========================================================================
+   
     // TOP BAR (Search, Profile)
-    // =========================================================================
+    
     private StackPane createTopBar() {
         StackPane topBar = new StackPane();
         topBar.getStyleClass().add("home-top-bar");
@@ -589,9 +588,8 @@ public class App extends Application {
         results.setVisible(true);
     }
 
-    // =========================================================================
     // HOME SCREEN
-    // =========================================================================
+    
     private void createHomeScreen() {
         homeScreen = new VBox(0);
         homeScreen.getStyleClass().add("screen");
@@ -720,12 +718,12 @@ public class App extends Application {
 
         ScrollPane scroll = new ScrollPane();
         scroll.getStyleClass().add("scroll-pane");
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
         scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setFitToHeight(true);
 
         HBox cardBox = new HBox(20);
-        cardBox.setPadding(new Insets(8, 2, 20, 2));
+        cardBox.setPadding(new Insets(12, 8, 26, 8));
 
         for (Movie movie : movies) {
             cardBox.getChildren().add(createMovieCard(movie));
@@ -812,9 +810,9 @@ public class App extends Application {
         return card;
     }
 
-    // =========================================================================
+    
     // MEDIA PLAYER SCREEN
-    // =========================================================================
+    
     private void createMediaPlayerScreen() {
         mediaPlayerScreen = new BorderPane();
         mediaPlayerScreen.getStyleClass().add("player-screen");
@@ -1240,9 +1238,9 @@ public class App extends Application {
         }
     }
 
-    // =========================================================================
+    
     // MOVIE DETAILS SCREEN
-    // =========================================================================
+   
     private void createMovieDetailsScreen() {
         movieDetailsScreen = new VBox(0);
         movieDetailsScreen.getStyleClass().add("movie-details-screen");
@@ -1413,9 +1411,9 @@ public class App extends Application {
         return value == null || value.isEmpty() ? "Not available" : value;
     }
 
-    // =========================================================================
+    
     // OTHER SCREENS
-    // =========================================================================
+    
     private void createWatchlistScreen() {
         watchlistScreen = new VBox(0);
         watchlistScreen.getStyleClass().add("screen");
@@ -1606,9 +1604,9 @@ public class App extends Application {
         moviesScreen.getChildren().add(scrollPane);
     }
 
-    // =========================================================================
+   
     // SCREEN SWITCHING & REUSABLE BUTTONS
-    // =========================================================================
+   
     private void showHomeScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(homeScreen); }
     private void showMoviesScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(moviesScreen); }
     private void showTVShowsScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(tvShowsScreen); }
@@ -1666,9 +1664,9 @@ public class App extends Application {
         return btn;
     }
 
-    // =========================================================================
+    
     // DATA CLASS
-    // =========================================================================
+    
     private static class MovieMetadata {
         final String overview;
         final String cast;
