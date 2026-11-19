@@ -88,6 +88,10 @@ public class App extends Application {
     private static final String TEXT_MUTED = "#8B9EB0";
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
+    // A row shows exactly 5 thumbnails: 5 cards (180 wide) + 4 gaps (20) + 8px padding each side,
+    // plus a little slack for the scroll pane border. Remaining cards are reached by scrolling.
+    private static final double ROW_VIEWPORT_WIDTH = 1000;
+
     // Sounds & Custom Controls Helper
     private final SoundsAndButtons soundsAndButtons = new SoundsAndButtons();
 
@@ -146,6 +150,7 @@ public class App extends Application {
     private Label playbackErrorLabel;
     private Label playerTitleLabel;
     private String previousWindowTitle;
+    private Movie currentPlayerMovie;
     private CustomButton fullscreenButton;
     private CustomButton openTrailerButton;
     private StackPane customPlayPauseButton;
@@ -797,7 +802,7 @@ public class App extends Application {
                     searchField.clear();
                     resultsPane.setVisible(false);
                     resultsPane.setManaged(false);
-                    showMovieDetails(media);
+                    openPlayer(media);
                 });
                 results.getChildren().add(result);
             }
@@ -858,6 +863,7 @@ public class App extends Application {
 
     private VBox createMovieRow(String title, List<Movie> movies) {
         VBox section = new VBox(15);
+        section.setAlignment(Pos.TOP_LEFT);
         section.setPadding(new Insets(0, 36, 0, 36));
 
         Text titleText = new Text(title);
@@ -868,6 +874,8 @@ public class App extends Application {
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
         scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setFitToHeight(true);
+        scroll.setPrefWidth(ROW_VIEWPORT_WIDTH);
+        scroll.setMaxWidth(ROW_VIEWPORT_WIDTH);
 
         HBox cardBox = new HBox(20);
         cardBox.setPadding(new Insets(12, 8, 26, 8));
@@ -969,7 +977,7 @@ public class App extends Application {
         });
 
         soundsAndButtons.makePosterHoverable(card);
-        soundsAndButtons.makePosterClickable(card, () -> showMovieDetails(movie));
+        soundsAndButtons.makePosterClickable(card, () -> openPlayer(movie));
 
         return card;
     }
@@ -1051,7 +1059,11 @@ public class App extends Application {
         backButton.setOnAction(e -> closePlayer());
         playerTitleLabel = new Label("Trailer");
         playerTitleLabel.getStyleClass().add("player-title");
-        HBox playerHeader = new HBox(18, backButton, playerTitleLabel);
+        Region headerSpacer = new Region();
+        HBox.setHgrow(headerSpacer, Priority.ALWAYS);
+        CustomButton detailsButton = createSecondaryButton("Details");
+        detailsButton.setOnAction(e -> openDetailsFromPlayer());
+        HBox playerHeader = new HBox(18, backButton, playerTitleLabel, headerSpacer, detailsButton);
         playerHeader.setAlignment(Pos.CENTER_LEFT);
         playerHeader.getStyleClass().add("player-header");
 
@@ -1104,6 +1116,7 @@ public class App extends Application {
 
     private void openPlayer(Movie movie) {
         playerClosing = false;
+        currentPlayerMovie = movie;
         root.setLeft(null);
         previousWindowTitle = mainStage.getTitle();
         trailerRequestId++;
@@ -1119,6 +1132,7 @@ public class App extends Application {
         StackPane.setAlignment(mediaPlayerScreen, Pos.CENTER);
         playerScrim.setOpacity(0);
         mediaPlayerScreen.setOpacity(0);
+        contentArea.getChildren().removeAll(playerScrim, mediaPlayerScreen);
         contentArea.getChildren().addAll(playerScrim, mediaPlayerScreen);
         ParallelTransition playerEntrance = new ParallelTransition(
                 fadeIn(playerScrim), fadeIn(mediaPlayerScreen));
@@ -1430,6 +1444,7 @@ public class App extends Application {
         trailerWebView.setVisible(false);
         currentYoutubeKey = null;
         openTrailerButton.setDisable(true);
+        root.setLeft(sidebar);
         if (mainStage.isFullScreen()) {
             mainStage.setFullScreen(false);
         }
@@ -1443,6 +1458,15 @@ public class App extends Application {
             playerScrim.setOpacity(1);
         });
         playerExit.play();
+    }
+
+    // Closes the player and opens the details page (cast, overview, watchlist) of the current trailer
+    private void openDetailsFromPlayer() {
+        Movie movie = currentPlayerMovie;
+        closePlayer();
+        if (movie != null) {
+            showMovieDetails(movie);
+        }
     }
 
     private void showPlaybackError(String message) {
@@ -1785,7 +1809,7 @@ public class App extends Application {
                 CustomButton playBtn = createPrimaryButton("Play");
                 playBtn.setPrefWidth(100);
                 playBtn.setPrefHeight(40);
-                playBtn.setOnAction(e -> showMovieDetails(movie));
+                playBtn.setOnAction(e -> openPlayer(movie));
 
                 CustomButton removeBtn = new CustomButton("Remove");
                 removeBtn.getStyleClass().add("remove-button");
@@ -1994,30 +2018,16 @@ public class App extends Application {
         scrollPane.setFitToWidth(true);
 
         VBox content = new VBox(30);
-        content.setPadding(new Insets(40, 50, 60, 50));
+        content.setPadding(new Insets(40, 0, 60, 0));
         content.setAlignment(Pos.TOP_LEFT);
         Text title = new Text("TV Shows");
         title.getStyleClass().add("screen-title");
+        VBox.setMargin(title, new Insets(0, 36, 0, 36));
 
         content.getChildren().add(title);
 
         for (String genre : new String[] {"Action", "Adventure", "Sci-Fi"}) {
-            VBox genreSection = new VBox(15);
-            genreSection.setAlignment(Pos.TOP_LEFT);
-            Text genreTitle = new Text(genre + " TV Shows");
-            genreTitle.getStyleClass().add("section-title");
-
-            FlowPane grid = new FlowPane(20, 20);
-            grid.setAlignment(Pos.TOP_CENTER);
-            int shownCount = 0;
-            for (Movie tvShow : allTvShows) {
-                if (genre.equals(tvShow.genre) && shownCount < 5) {
-                    grid.getChildren().add(createMovieCard(tvShow));
-                    shownCount++;
-                }
-            }
-            genreSection.getChildren().addAll(genreTitle, grid);
-            content.getChildren().add(genreSection);
+            content.getChildren().add(createMovieRow(genre + " TV Shows", tvShowsByGenre(genre)));
         }
         scrollPane.setContent(content);
         tvShowsScreen.getChildren().add(scrollPane);
@@ -2031,29 +2041,15 @@ public class App extends Application {
         scrollPane.setFitToWidth(true);
 
         VBox content = new VBox(30);
-        content.setPadding(new Insets(40, 50, 60, 50));
+        content.setPadding(new Insets(40, 0, 60, 0));
         content.setAlignment(Pos.TOP_LEFT);
         Text title = new Text("Movies");
         title.getStyleClass().add("screen-title");
+        VBox.setMargin(title, new Insets(0, 36, 0, 36));
 
         content.getChildren().add(title);
         for (String genre : new String[] {"Action", "Adventure", "Sci-Fi"}) {
-            VBox genreSection = new VBox(15);
-            genreSection.setAlignment(Pos.TOP_LEFT);
-            Text genreTitle = new Text(genre + " Movies");
-            genreTitle.getStyleClass().add("section-title");
-
-            FlowPane grid = new FlowPane(20, 20);
-            grid.setAlignment(Pos.TOP_CENTER);
-            int shownCount = 0;
-            for (Movie movie : allMovies) {
-                if (genre.equals(movie.genre) && shownCount < 5) {
-                    grid.getChildren().add(createMovieCard(movie));
-                    shownCount++;
-                }
-            }
-            genreSection.getChildren().addAll(genreTitle, grid);
-            content.getChildren().add(genreSection);
+            content.getChildren().add(createMovieRow(genre + " Movies", categoryMovies(genre)));
         }
         scrollPane.setContent(content);
         moviesScreen.getChildren().add(scrollPane);
