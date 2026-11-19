@@ -1,6 +1,4 @@
-/* --------------------------------------------------------------------------
-   Root & Global
-   -------------------------------------------------------------------------- */
+/* Root and global */
 .root {
     -fx-background-color: #000000;
     -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
@@ -10,9 +8,7 @@
     -fx-background-color: #0B1A26;
 }
 
-/* --------------------------------------------------------------------------
-   Scroll Pane & Scroll Bars
-   -------------------------------------------------------------------------- */
+/* Scroll pane and scroll bars */
 .scroll-pane {
     -fx-background: #0B1A26;
     -fx-background-color: #0B1A26;
@@ -57,9 +53,27 @@
     -fx-opacity: 0;
 }
 
-/* --------------------------------------------------------------------------
-   Sidebar
-   -------------------------------------------------------------------------- */
+/* Custom button base style.
+   CustomButton in App.java is a Label, so it has no default button look.
+   Every custom button gets this base, and the specific classes below
+   (nav-button, primary-button and so on) override it. */
+.custom-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 14px;
+    -fx-cursor: hand;
+}
+
+.custom-button:pressed {
+    -fx-opacity: 0.8;
+}
+
+.custom-button:disabled {
+    -fx-opacity: 0.4;
+    -fx-cursor: default;
+}
+
+/* Sidebar */
 .sidebar {
     -fx-background-color: #101F32;
     -fx-border-color: transparent rgba(255, 255, 255, 0.06) transparent transparent;
@@ -93,9 +107,7 @@
     -fx-text-fill: #FCA311;
 }
 
-/* --------------------------------------------------------------------------
-   Navigation Buttons
-   -------------------------------------------------------------------------- */
+/* Navigation buttons */
 .nav-button {
     -fx-background-color: transparent;
     -fx-background-radius: 12;
@@ -117,6 +129,10 @@
     -fx-border-color: transparent transparent transparent #FCA311;
     -fx-border-radius: 0;
     -fx-border-width: 0 0 0 3;
+    -fx-min-width: 52;
+    -fx-min-height: 52;
+    -fx-max-width: 52;
+    -fx-max-height: 52;
     -fx-padding: 12;
     -fx-cursor: hand;
 }
@@ -131,9 +147,7 @@
     -fx-font-weight: bold;
 }
 
-/* --------------------------------------------------------------------------
-   User Profile
-   -------------------------------------------------------------------------- */
+/* User profile */
 .user-box {
     -fx-background-color: rgba(255, 255, 255, 0.05);
     -fx-background-radius: 10;
@@ -181,7 +195,7 @@
     -fx-font-size: 11px;
 }
 
-/* Profile edit fields and the session-only membership action. */
+/* Profile edit fields and the session-only membership action */
 .profile-field-label {
     -fx-text-fill: #E5E5E5;
     -fx-font-size: 14px;
@@ -234,9 +248,7 @@
     -fx-font-size: 12px;
 }
 
-/* --------------------------------------------------------------------------
-   Search Bar & Top Bar
-   -------------------------------------------------------------------------- */
+/* Search bar and top bar */
 .search-box {
     -fx-background-color: #14283A;
     -fx-background-radius: 24;
@@ -334,9 +346,7 @@
     -fx-background-color: rgba(252, 163, 17, 0.16);
 }
 
-/* --------------------------------------------------------------------------
-   Hero Section
-   -------------------------------------------------------------------------- */
+/* Hero section */
 .hero {
     -fx-background-color: #000000;
     -fx-min-height: 450px;
@@ -362,9 +372,7 @@
     -fx-line-spacing: 6;
 }
 
-/* --------------------------------------------------------------------------
-   Badges
-   -------------------------------------------------------------------------- */
+/* Badges */
 .badge-gold {
     -fx-background-color: #FCA311;
     -fx-text-fill: #000000;
@@ -386,9 +394,7 @@
     -fx-border-width: 1;
 }
 
-/* --------------------------------------------------------------------------
-   Typography & Titles
-   -------------------------------------------------------------------------- */
+/* Typography and titles */
 .section-title {
     -fx-font-size: 23px;
     -fx-font-weight: 800;
@@ -415,9 +421,7 @@
     -fx-underline: true;
 }
 
-/* --------------------------------------------------------------------------
-   Movie Cards
-   -------------------------------------------------------------------------- */
+/* Movie cards */
 .movie-card {
     -fx-background-color: transparent;
     -fx-cursor: hand;
@@ -471,9 +475,7 @@
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.9), 5, 0, 0, 2);
 }
 
-/* --------------------------------------------------------------------------
-   Buttons
-   -------------------------------------------------------------------------- */
+/* Primary and secondary buttons */
 .primary-button {
     -fx-background-color: #FCA311;
     -fx-background-radius: 8;
@@ -504,9 +506,7 @@
     -fx-border-color: #FCA311;
 }
 
-/* --------------------------------------------------------------------------
-   Movie Details Screen
-   -------------------------------------------------------------------------- */
+/* Movie details screen */
 .movie-details-screen {
     -fx-background-color: #0B1A26;
 }
@@ -559,9 +559,7 @@
     -fx-wrap-text: true;
 }
 
-/* --------------------------------------------------------------------------
-   Watchlist Screen
-   -------------------------------------------------------------------------- */
+/* Watchlist screen */
 .watchlist-row {
     -fx-background-color: #14213D;
     -fx-background-radius: 12;
@@ -611,9 +609,7 @@
     -fx-text-fill: #FFFFFF;
 }
 
-/* --------------------------------------------------------------------------
-   Categories Screen
-   -------------------------------------------------------------------------- */
+/* Categories screen */
 .category-card {
     -fx-background-color: #14213D;
     -fx-background-radius: 15;
@@ -634,9 +630,7 @@
     -fx-fill: #FFFFFF;
 }
 
-/* --------------------------------------------------------------------------
-   Settings Screen
-   -------------------------------------------------------------------------- */
+/* Settings screen */
 .setting-item {
     -fx-background-color: #14213D;
     -fx-background-radius: 12;
@@ -662,7 +656,7 @@
     -fx-fill: #E5E5E5;
 }
 
-/* Quality choices show the saved session preference with a distinct selected state. */
+/* Quality choices show the saved session preference with a distinct selected state */
 .quality-option {
     -fx-background-color: #14213D;
     -fx-background-radius: 8;
@@ -686,7 +680,7 @@
     -fx-font-weight: 700;
 }
 
-/* Keep these redesigned screens' section headings consistent with the white Settings labels. */
+/* Keep these screens' section headings consistent with the white Settings labels */
 .settings-detail-screen .detail-section-heading,
 .settings-detail-screen .notification-item-title,
 .notifications-screen .detail-section-heading,
@@ -696,9 +690,7 @@
     -fx-text-fill: #FFFFFF;
 }
 
- 
-   /* Media Player Controls */
- 
+/* Media player controls */
 .slider .track {
     -fx-background-color: rgba(255, 255, 255, 0.2);
     -fx-background-radius: 5;
