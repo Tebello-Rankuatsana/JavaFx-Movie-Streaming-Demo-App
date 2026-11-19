@@ -3,6 +3,7 @@ package streaming;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -34,8 +35,9 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
-import javafx.geometry.VPos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
@@ -49,7 +51,7 @@ import javafx.scene.effect.ColorAdjust;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.Node;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
@@ -65,10 +67,7 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
 import javafx.scene.text.Text;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.TextAlignment;
-import javafx.geometry.VPos;
+import javafx.scene.web.WebView;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -87,9 +86,11 @@ public class App extends Application {
     private BorderPane root;
     private StackPane contentArea;
     private VBox sidebar;
+    private VBox homeSearchArea;
+    private ScrollPane homeSearchResultsPane;
 
-    // --- Screens ---
-    private VBox homeScreen;
+    //  Screens 
+    private StackPane homeScreen;
     private VBox movieDetailsScreen;
     private VBox movieDetailsContainer;
     private Label detailOverviewLabel;
@@ -416,7 +417,7 @@ public class App extends Application {
 
    
     // TOP BAR (Search, Profile)
-    // =========================================================================
+    
     private StackPane createTopBar() {
         StackPane topBar = new StackPane();
         topBar.getStyleClass().add("home-top-bar");
@@ -497,14 +498,16 @@ public class App extends Application {
 
         HBox actions = new HBox(12, notifBtn, homeProfileButton);
         actions.setAlignment(Pos.CENTER_RIGHT);
-        // Balance both sides of the BorderPane so the search field aligns with the screen center.
+        // Balance both sides of the top bar so the search field aligns with the screen center.
         Region leftSpacer = new Region();
         leftSpacer.minWidthProperty().bind(actions.widthProperty());
         leftSpacer.prefWidthProperty().bind(actions.widthProperty());
         leftSpacer.maxWidthProperty().bind(actions.widthProperty());
-        topBar.setLeft(leftSpacer);
-        topBar.setCenter(searchArea);
-        topBar.setRight(actions);
+        BorderPane topBarLayout = new BorderPane();
+        topBarLayout.setLeft(leftSpacer);
+        topBarLayout.setCenter(searchArea);
+        topBarLayout.setRight(actions);
+        topBar.getChildren().add(topBarLayout);
         return topBar;
     }
 
@@ -812,7 +815,7 @@ public class App extends Application {
         scrollPane.setContent(contentBox);
 
         // Layer the top bar above the scrolling shelves so search can overlay their content.
-        BorderPane topBar = createTopBar();
+        StackPane topBar = createTopBar();
         VBox homeLayout = new VBox(0, topBar, scrollPane);
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         homeScreen.getChildren().add(homeLayout);
@@ -910,7 +913,7 @@ public class App extends Application {
             if (i == 0) pill.getStyleClass().add("category-pill-active");
 
             pill.setOnAction(e -> {
-                for (javafx.scene.Node node : pills.getChildren()) {
+                for (Node node : pills.getChildren()) {
                     node.getStyleClass().remove("category-pill-active");
                 }
                 pill.getStyleClass().add("category-pill-active");
@@ -1515,6 +1518,57 @@ public class App extends Application {
         mainStage.setFullScreen(!mainStage.isFullScreen());
     }
 
+    private void startPlayerLoading(String message) {
+        stopPlayerLoading();
+        videoPlaceholder.setText(message);
+        videoPlaceholder.setOpacity(1.0);
+        videoPlaceholder.setVisible(true);
+        loadingPulse = new FadeTransition(Duration.millis(800), videoPlaceholder);
+        loadingPulse.setFromValue(1.0);
+        loadingPulse.setToValue(0.4);
+        loadingPulse.setAutoReverse(true);
+        loadingPulse.setCycleCount(Animation.INDEFINITE);
+        loadingPulse.setInterpolator(Interpolator.EASE_BOTH);
+        loadingPulse.play();
+    }
+
+    private void stopPlayerLoading() {
+        if (loadingPulse != null) {
+            loadingPulse.stop();
+            loadingPulse = null;
+        }
+        if (playerLoadTimeout != null) {
+            playerLoadTimeout.stop();
+            playerLoadTimeout = null;
+        }
+        if (videoPlaceholder != null) {
+            videoPlaceholder.setOpacity(1.0);
+        }
+    }
+
+    private static FadeTransition fadeIn(Node node) {
+        FadeTransition transition = new FadeTransition(Duration.millis(200), node);
+        transition.setFromValue(0.0);
+        transition.setToValue(1.0);
+        transition.setInterpolator(Interpolator.EASE_BOTH);
+        return transition;
+    }
+
+    private static FadeTransition fadeOut(Node node) {
+        FadeTransition transition = new FadeTransition(Duration.millis(180), node);
+        transition.setFromValue(1.0);
+        transition.setToValue(0.0);
+        transition.setInterpolator(Interpolator.EASE_BOTH);
+        return transition;
+    }
+
+    private void transitionToScreen(Node screen) {
+        root.setLeft(sidebar);
+        screen.setOpacity(0.0);
+        contentArea.getChildren().setAll(screen);
+        fadeIn(screen).play();
+    }
+
     private static class TrailerLookupException extends RuntimeException {
         TrailerLookupException(String message) {
             super(message);
@@ -1891,8 +1945,8 @@ public class App extends Application {
         item.setOnMouseClicked(e -> action.run());
         item.setFocusTraversable(true);
         item.setOnKeyPressed(e -> {
-            if (e.getCode() == javafx.scene.input.KeyCode.ENTER
-                    || e.getCode() == javafx.scene.input.KeyCode.SPACE) {
+            if (e.getCode() == KeyCode.ENTER
+                    || e.getCode() == KeyCode.SPACE) {
                 action.run();
             }
         });
@@ -2063,7 +2117,6 @@ public class App extends Application {
 
    
     // SCREEN SWITCHING & REUSABLE BUTTONS
-    // =========================================================================
     private void showHomeScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(homeScreen); }
     private void showMoviesScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(moviesScreen); }
     private void showTVShowsScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(tvShowsScreen); }
@@ -2072,7 +2125,7 @@ public class App extends Application {
     private void showSettingsScreen() { root.setLeft(sidebar); contentArea.getChildren().setAll(settingsScreen); }
 
     private Image loadPoster(String resourcePath) {
-        java.net.URL posterResource = getClass().getResource(resourcePath);
+        URL posterResource = getClass().getResource(resourcePath);
         // TV poster files are supplied separately; keep their cards usable until those files arrive.
         return posterResource == null
                 ? new javafx.scene.image.WritableImage(1, 1)
