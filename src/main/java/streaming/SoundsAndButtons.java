@@ -15,19 +15,22 @@ import javafx.scene.media.AudioClip;
 
 public class SoundsAndButtons {
 
+    private static final long HOVER_COOLDOWN_MS = 120;
+
     private final AudioClip clickSound;
     private final AudioClip toggleSound;
-    private final AudioClip playSound;
+    
     private boolean soundOn = true;
+    private long lastHoverSoundTime = 0;
 
     public SoundsAndButtons() {
-        clickSound = loadSound("/sounds/click.wav");
-        toggleSound = loadSound("/sounds/toggle.wav");
-        playSound = loadSound("/sounds/play.wav");
+        clickSound = loadSound("/sounds/mouseclick.mp3");
+        toggleSound = loadSound("/sounds/toggle.mp3");
     }
 
-    // Loads a sound file if it exists; returns null if missing so the app still runs
+
     private AudioClip loadSound(String path) {
+
         URL url = getClass().getResource(path);
         if (url == null) {
             return null;
@@ -55,8 +58,12 @@ public class SoundsAndButtons {
         play(toggleSound);
     }
 
-    public void playPlay() {
-        play(playSound);
+    public void playHoverToggle() {
+        long now = System.currentTimeMillis();
+        if (now - lastHoverSoundTime >= HOVER_COOLDOWN_MS) {
+            lastHoverSoundTime = now;
+            play(toggleSound);
+        }
     }
 
     private void play(AudioClip clip) {
@@ -65,16 +72,19 @@ public class SoundsAndButtons {
         }
     }
 
-    // Creates a custom Play/Pause button using a Label
+    // Creates a custom Play/Pause button using a Label inside a StackPane
     public StackPane createPlayPauseControl(boolean startPlaying, Consumer<Boolean> onToggle) {
-        Label label = new Label(startPlaying ? "❚❚ Pause" : "▶ Play");
+        Label label = new Label(startPlaying ? "Pause" : "Play");
         label.getStyleClass().add("custom-play-pause-label");
 
         StackPane button = new StackPane(label);
         button.getStyleClass().add("custom-play-pause");
         button.setAlignment(Pos.CENTER);
         button.setFocusTraversable(true);
-        button.setTooltip(new Tooltip(startPlaying ? "Pause" : "Play"));
+
+        Tooltip playTooltip = new Tooltip("Play");
+        Tooltip pauseTooltip = new Tooltip("Pause");
+        Tooltip.install(button, startPlaying ? pauseTooltip : playTooltip);
 
         final boolean[] isPlaying = { startPlaying };
 
@@ -83,12 +93,12 @@ public class SoundsAndButtons {
             boolean playingNow = isPlaying[0];
 
             label.setText(playingNow ? "Pause" : "Play");
-            button.setTooltip(new Tooltip(playingNow ? "Pause" : "Play"));
+            Tooltip.install(button, playingNow ? pauseTooltip : playTooltip);
 
             button.getStyleClass().remove("custom-play-pause-playing");
             if (playingNow) {
                 button.getStyleClass().add("custom-play-pause-playing");
-                playPlay();
+
             } else {
                 playToggle();
             }
@@ -107,6 +117,11 @@ public class SoundsAndButtons {
         });
 
         return button;
+    }
+
+    // Plays toggle sound when hovering over a poster or card
+    public void makePosterHoverable(Node posterCard) {
+        posterCard.addEventHandler(MouseEvent.MOUSE_ENTERED, e -> playHoverToggle());
     }
 
     // Makes a movie poster card clickable with sound and keyboard support
@@ -131,8 +146,9 @@ public class SoundsAndButtons {
         });
     }
 
-    // Adds a click or toggle sound to existing buttons without changing what they do
+
     public void addButtonSound(ButtonBase button, boolean useToggleSound) {
+
         button.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
             if (useToggleSound) {
                 playToggle();

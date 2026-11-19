@@ -832,3 +832,31 @@
 .player-play-button:hover {
     -fx-background-color: #FFB733;
 }
+
+.custom-play-pause {
+    -fx-background-color: #FCA311;
+    -fx-background-radius: 20;
+    -fx-padding: 10 20;
+    -fx-cursor: hand;
+}
+
+.custom-play-pause:hover {
+    -fx-background-color: #FFB733;
+}
+
+.custom-play-pause-playing {
+    -fx-background-color: #14283A;
+    -fx-border-color: #FCA311;
+    -fx-border-radius: 20;
+    -fx-border-width: 1.5;
+}
+
+.custom-play-pause-label {
+    -fx-text-fill: #000000;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.custom-play-pause-playing .custom-play-pause-label {
+    -fx-text-fill: #FFFFFF;
+}

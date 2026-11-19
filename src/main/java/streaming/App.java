@@ -1,6 +1,5 @@
 package streaming;
 
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
@@ -84,6 +83,9 @@ public class App extends Application {
     private static final String TEXT_MUTED = "#8B9EB0";
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
+    // Sounds & Custom Controls Helper
+    private final SoundsAndButtons soundsAndButtons = new SoundsAndButtons();
+
     // Layout Managers
     private BorderPane root;
     private StackPane contentArea;
@@ -116,8 +118,8 @@ public class App extends Application {
     private BorderPane mediaPlayerScreen;
 
     // Data Models
+ 
     private final List<Movie> allMovies = new ArrayList<>();
-
     private final List<Movie> allTvShows = new ArrayList<>();
     private final List<Movie> watchlist = new ArrayList<>();
     private final List<Movie> trendingMovies = new ArrayList<>();
@@ -127,9 +129,9 @@ public class App extends Application {
 
     // Profile, Settings & Media Player State
     private Stage mainStage;
-
+ 
     private String profileName = "Alexander";
-
+  
     private String profileEmail = "alexander@example.com";
     private String preferredLanguage = "English";
     private boolean membershipActive = true;
@@ -144,8 +146,9 @@ public class App extends Application {
     private String previousWindowTitle;
     private Button fullscreenButton;
     private Button openTrailerButton;
+    private StackPane customPlayPauseButton;
     private WebView trailerWebView;
-
+  
     private String tmdbApiKey;
     private String currentYoutubeKey;
     private long trailerRequestId;
@@ -387,6 +390,7 @@ public class App extends Application {
         btn.setGraphic(createPlayerIcon(icon));
         btn.setAccessibleText(text);
         btn.setFocusTraversable(true);
+        soundsAndButtons.addButtonSound(btn, false);
         return btn;
     }
 
@@ -482,7 +486,7 @@ public class App extends Application {
         searchField.getStyleClass().add("search-field");
         searchField.setPromptText("Search movies and TV shows by title or genre...");
         searchField.setPrefWidth(390);
-
+   
         searchField.setFocusTraversable(true);
         HBox.setHgrow(searchField, Priority.ALWAYS);
         searchBox.getChildren().addAll(searchIconBox, searchField);
@@ -495,16 +499,16 @@ public class App extends Application {
         searchResultsPane.setFitToWidth(true);
         searchResultsPane.setMaxHeight(520);
         searchResultsPane.setVisible(false);
+   
         searchResultsPane.setManaged(false);
-
         homeSearchResultsPane = searchResultsPane;
 
         searchArea.getChildren().add(searchBox);
         searchField.textProperty().addListener((obs, oldValue, newValue) ->
                 updateSearchResults(newValue, searchResults, searchResultsPane, searchField));
-
-        searchField.setOnAction(e -> {
-
+   
+                searchField.setOnAction(e -> {
+  
             if (!searchResults.getChildren().isEmpty()
                     && searchResults.getChildren().get(0) instanceof Button) {
                 ((Button) searchResults.getChildren().get(0)).fire();
@@ -516,11 +520,12 @@ public class App extends Application {
         notifBtn.setGraphic(createPlayerIcon("M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9zm-8 12h4a2 2 0 0 1-4 0z"));
         notifBtn.setTooltip(new Tooltip("Notifications"));
         notifBtn.setAccessibleText("Notifications: updates and service terms");
+        soundsAndButtons.addButtonSound(notifBtn, false);
         notifBtn.setOnAction(e -> showNotifications(this::showHomeScreen, "Back to Home"));
 
 
         homeProfileButton = new Button();
-
+   
         homeProfileButton.getStyleClass().add("profile-button");
         Circle profileAvatar = new Circle(17, Color.web(TEAL_PANEL));
         profileAvatar.setStroke(Color.web(CYAN_ACCENT));
@@ -531,6 +536,7 @@ public class App extends Application {
         StackPane avatar = new StackPane(profileAvatar, homeProfileInitial);
         homeProfileButton.setGraphic(avatar);
         updateHomeProfileButton();
+        soundsAndButtons.addButtonSound(homeProfileButton, false);
         homeProfileButton.setOnAction(e -> showProfileInfo(this::showHomeScreen));
 
         HBox actions = new HBox(12, notifBtn, homeProfileButton);
@@ -557,7 +563,7 @@ public class App extends Application {
     }
 
     private String profileInitials(String name) {
-
+   
         String[] parts = name.trim().split("\\s+");
         if (parts.length == 1) {
             return parts[0].substring(0, 1).toUpperCase(Locale.ROOT);
@@ -566,8 +572,8 @@ public class App extends Application {
                 .toUpperCase(Locale.ROOT);
     }
 
+   
     private void showNotifications(Runnable backAction, String backLabel) {
-
         notificationsBackButton.setOnAction(e -> backAction.run());
         notificationsBackButton.setTooltip(new Tooltip(backLabel));
         notificationsBackButton.setAccessibleText(backLabel);
@@ -577,9 +583,9 @@ public class App extends Application {
     }
 
     private void createNotificationsScreen() {
-
+  
         notificationsScreen = new VBox(0);
-
+ 
         notificationsScreen.getStyleClass().add("screen");
         notificationsScreen.getStyleClass().add("notifications-screen");
 
@@ -599,7 +605,7 @@ public class App extends Application {
         intro.setWrapText(true);
 
         VBox updates = new VBox(14);
-
+ 
         updates.getChildren().addAll(
                 notificationItem("Movie and TV details",
                         "Cast, creators, languages, and ratings are provided by TMDB."),
@@ -611,14 +617,18 @@ public class App extends Application {
                         "This demo is provided under the repository's MIT License. TMDB and YouTube services are subject to their own terms."));
 
         Label termsHeading = new Label("External service terms");
+ 
         termsHeading.getStyleClass().add("detail-section-heading");
-
         Hyperlink tmdbTerms = new Hyperlink("TMDB Terms of Use");
-        tmdbTerms.setOnAction(e -> getHostServices().showDocument(
-                "https://www.themoviedb.org/terms-of-use"));
+        tmdbTerms.setOnAction(e -> {
+            soundsAndButtons.playClick();
+            getHostServices().showDocument("https://www.themoviedb.org/terms-of-use");
+        });
         Hyperlink youtubeTerms = new Hyperlink("YouTube Terms of Service");
-        youtubeTerms.setOnAction(e -> getHostServices().showDocument(
-                "https://www.youtube.com/t/terms"));
+        youtubeTerms.setOnAction(e -> {
+            soundsAndButtons.playClick();
+            getHostServices().showDocument("https://www.youtube.com/t/terms");
+        });
         HBox termsLinks = new HBox(16, tmdbTerms, youtubeTerms);
 
         content.getChildren().addAll(title, intro, updates, termsHeading, termsLinks);
@@ -677,7 +687,7 @@ public class App extends Application {
 
         Label detailsTitle = new Label("Profile details");
         detailsTitle.getStyleClass().add("detail-section-heading");
-
+ 
         TextField nameField = new TextField(profileName);
 
         TextField emailField = new TextField(profileEmail);
@@ -707,6 +717,7 @@ public class App extends Application {
         if (membershipActive) {
             Button cancelMembershipButton = new Button("Cancel membership");
             cancelMembershipButton.getStyleClass().add("profile-danger-button");
+            soundsAndButtons.addButtonSound(cancelMembershipButton, true);
             cancelMembershipButton.setOnAction(e -> confirmMembershipCancellation(returnAction));
             profileDetails.getChildren().add(cancelMembershipButton);
         }
@@ -747,7 +758,7 @@ public class App extends Application {
     }
 
     private void confirmMembershipCancellation(Runnable returnAction) {
-
+ 
         Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION,
                 "Cancel the Premium membership? This demo will only change the displayed status for this app session; it will not contact a billing service.",
                 ButtonType.OK, ButtonType.CANCEL);
@@ -764,14 +775,15 @@ public class App extends Application {
     private void updateSearchResults(String query, VBox results, ScrollPane resultsPane,
             TextField searchField) {
         results.getChildren().clear();
-
+ 
         String normalizedQuery = query == null ? ""
                 : query.trim().toLowerCase(Locale.ROOT);
         if (normalizedQuery.isEmpty()) {
-
+   
             resultsPane.setVisible(false);
             resultsPane.setManaged(false);
             return;
+ 
         }
 
 
@@ -785,13 +797,13 @@ public class App extends Application {
             }
         }
 
+ 
         if (matches.isEmpty()) {
-
             Label emptyResult = new Label("Not available in this app");
             emptyResult.getStyleClass().add("search-empty-result");
             results.getChildren().add(emptyResult);
+ 
         } else {
-
             Label resultHeading = new Label(matches.size() + " available in this app");
             resultHeading.getStyleClass().add("search-results-heading");
             results.getChildren().add(resultHeading);
@@ -803,10 +815,11 @@ public class App extends Application {
                 result.setMinHeight(60);
                 result.setPrefHeight(60);
                 result.setAlignment(Pos.CENTER_LEFT);
+                soundsAndButtons.addButtonSound(result, false);
                 result.setOnAction(e -> {
-
+ 
                     searchField.clear();
-
+ 
                     resultsPane.setVisible(false);
                     resultsPane.setManaged(false);
                     showMovieDetails(media);
@@ -821,8 +834,8 @@ public class App extends Application {
         resultsPane.setVisible(true);
     }
 
+    
     // HOME SCREEN
-
     private void createHomeScreen() {
         homeScreen = new StackPane();
         homeScreen.getStyleClass().add("screen");
@@ -856,23 +869,24 @@ public class App extends Application {
         contentBox.getChildren().addAll(
                 moviesHeading, trendingRow, popularRow, recentlyRow,
                 tvHeading, actionTvRow, adventureTvRow, sciFiTvRow);
-
-        scrollPane.setContent(contentBox);
+                scrollPane.setContent(contentBox);
 
 
         StackPane topBar = createTopBar();
         VBox homeLayout = new VBox(0, topBar, scrollPane);
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
+ 
         homeScreen.getChildren().add(homeLayout);
 
 
         StackPane.setAlignment(homeSearchResultsPane, Pos.TOP_CENTER);
+ 
         StackPane.setMargin(homeSearchResultsPane, new Insets(82, 0, 0, 0));
-
         homeSearchResultsPane.minWidthProperty().bind(homeSearchArea.widthProperty());
         homeSearchResultsPane.prefWidthProperty().bind(homeSearchArea.widthProperty());
         homeSearchResultsPane.maxWidthProperty().bind(homeSearchArea.widthProperty());
         homeScreen.getChildren().add(homeSearchResultsPane);
+  
     }
 
 
@@ -972,7 +986,8 @@ public class App extends Application {
         Timeline restorePosterBrightness = new Timeline(new KeyFrame(Duration.millis(220),
                 new KeyValue(posterBrightness.brightnessProperty(), 0, Interpolator.EASE_BOTH)));
 
-        card.setOnMouseEntered(e -> {
+     card.setOnMouseEntered(e -> {
+            soundsAndButtons.playHoverToggle();
             playOverlay.setMouseTransparent(false);
             scaleIn.playFromStart();
             fadeIn.playFromStart();
@@ -988,13 +1003,15 @@ public class App extends Application {
             card.setEffect(null);
             card.setViewOrder(0);
         });
-        card.setOnMouseClicked(e -> showMovieDetails(movie));
+
+        soundsAndButtons.makePosterHoverable(card);
+        soundsAndButtons.makePosterClickable(card, () -> showMovieDetails(movie));
 
         return card;
     }
 
+   
     // MEDIA PLAYER SCREEN
-
     private void createMediaPlayerScreen() {
         mediaPlayerScreen = new BorderPane();
         mediaPlayerScreen.getStyleClass().add("player-screen");
@@ -1018,6 +1035,15 @@ public class App extends Application {
         trailerWebView.setVisible(false);
         trailerWebView.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 
+        customPlayPauseButton = soundsAndButtons.createPlayPauseControl(false, playing -> {
+            if (trailerWebView != null && trailerWebView.getEngine() != null) {
+                String jsCommand = playing
+                        ? "var v = document.querySelector('video'); if (v) v.play();"
+                        : "var v = document.querySelector('video'); if (v) v.pause();";
+                trailerWebView.getEngine().executeScript(jsCommand);
+            }
+        });
+
         Label sourceLabel = new Label("Trailer playback provided by YouTube");
         sourceLabel.getStyleClass().add("player-time-label");
         Region footerSpacer = new Region();
@@ -1037,7 +1063,7 @@ public class App extends Application {
                 "player-volume-button", "Enter fullscreen");
         fullscreenButton.setOnAction(e -> toggleFullscreen());
 
-        HBox playerFooter = new HBox(12, sourceLabel, openTrailerButton, footerSpacer, fullscreenButton);
+        HBox playerFooter = new HBox(12, customPlayPauseButton, sourceLabel, openTrailerButton, footerSpacer, fullscreenButton);
         playerFooter.setAlignment(Pos.CENTER_LEFT);
         playerFooter.getStyleClass().add("player-controls");
 
@@ -1089,6 +1115,7 @@ public class App extends Application {
         button.setGraphic(createPlayerIcon(iconPath));
         button.setTooltip(new Tooltip(tooltip));
         button.setAccessibleText(tooltip);
+        soundsAndButtons.addButtonSound(button, false);
         return button;
     }
 
@@ -1135,9 +1162,9 @@ public class App extends Application {
         playerEntrance.play();
         mainStage.setTitle("StreamFlix - " + movie.title);
 
-
+ 
         if (tmdbApiKey == null) {
-
+ 
             tmdbApiKey = requestTmdbApiKey();
             if (tmdbApiKey == null) {
                 stopPlayerLoading();
@@ -1148,8 +1175,8 @@ public class App extends Application {
         fetchTrailer(movie, tmdbApiKey);
     }
 
+   
     private String requestTmdbApiKey() {
-
         Dialog<String> dialog = new Dialog<>();
         dialog.initOwner(mainStage);
         dialog.setTitle("TMDB API Key");
@@ -1171,8 +1198,8 @@ public class App extends Application {
     }
 
     private void fetchTrailer(Movie movie, String apiKey) {
+   
         long requestId = ++trailerRequestId;
-
         CompletableFuture.supplyAsync(() -> lookupTrailer(movie, apiKey))
                 .whenComplete((youtubeKey, error) -> Platform.runLater(() -> {
                     if (requestId != trailerRequestId) {
@@ -1180,8 +1207,8 @@ public class App extends Application {
                     }
                     if (error != null) {
                         Throwable cause = error instanceof CompletionException
-                                ? error.getCause() : error;
-
+  
+                        ? error.getCause() : error;
                         if (cause instanceof InvalidTmdbApiKeyException
                                 && apiKey.equals(tmdbApiKey)) {
                             tmdbApiKey = null;
@@ -1200,8 +1227,8 @@ public class App extends Application {
                             showPlaybackError("The embedded YouTube player is taking too long to load. Use Open in browser to watch this trailer.");
                         }
                     });
+   
                     playerLoadTimeout.playFromStart();
-
                     trailerWebView.getEngine().load(
                             "https://www.youtube-nocookie.com/embed/" + youtubeKey
                                     + "?autoplay=1&rel=0");
@@ -1241,10 +1268,10 @@ public class App extends Application {
 
         String youtubeKey = jsonString(firstTrailer, "key");
         if (!youtubeKey.matches("[A-Za-z0-9_-]+")) {
+          
             throw new TrailerLookupException("TMDB returned an invalid YouTube trailer ID.");
-    
         }
-    
+
         return youtubeKey;
     }
 
@@ -1435,6 +1462,7 @@ public class App extends Application {
         if (currentYoutubeKey == null) {
             return;
         }
+        soundsAndButtons.playClick();
         getHostServices().showDocument("https://www.youtube.com/watch?v=" + currentYoutubeKey);
     }
 
@@ -1474,6 +1502,7 @@ public class App extends Application {
     }
 
     private void toggleFullscreen() {
+        soundsAndButtons.playToggle();
         mainStage.setFullScreen(!mainStage.isFullScreen());
     }
 
@@ -1549,6 +1578,7 @@ public class App extends Application {
     // MOVIE DETAILS SCREEN
 
     private void createMovieDetailsScreen() {
+
         movieDetailsScreen = new VBox(0);
         movieDetailsScreen.getStyleClass().add("movie-details-screen");
 
@@ -1585,6 +1615,7 @@ public class App extends Application {
         Button watchlistButton = createSecondaryButton(
                 watchlist.contains(movie) ? "In Watchlist" : "Add to Watchlist");
         watchlistButton.setOnAction(e -> {
+            soundsAndButtons.playToggle();
             if (watchlist.contains(movie)) {
                 watchlist.remove(movie);
                 watchlistButton.setText("Add to Watchlist");
@@ -1811,6 +1842,7 @@ public class App extends Application {
                 removeBtn.getStyleClass().add("remove-button");
                 removeBtn.setPrefWidth(100);
                 removeBtn.setPrefHeight(40);
+                soundsAndButtons.addButtonSound(removeBtn, true);
                 removeBtn.setOnAction(e -> {
                     watchlist.remove(movie);
                     refreshWatchlistScreen();
@@ -1846,8 +1878,10 @@ public class App extends Application {
         content.getChildren().add(createMovieRow("Adventure", categoryMovies("Adventure")));
 
         content.getChildren().add(createMovieRow("Sci-Fi", categoryMovies("Sci-Fi")));
-        Text tvShowsHeading = new Text("TV Series");
 
+
+
+        Text tvShowsHeading = new Text("TV Series");
         tvShowsHeading.getStyleClass().add("section-title");
         VBox.setMargin(tvShowsHeading, new Insets(12, 36, -12, 36));
         content.getChildren().add(tvShowsHeading);
@@ -1903,10 +1937,14 @@ public class App extends Application {
         item.getChildren().add(textBox);
         item.setOnMouseEntered(e -> item.getStyleClass().add("setting-item-hover"));
         item.setOnMouseExited(e -> item.getStyleClass().remove("setting-item-hover"));
-        item.setOnMouseClicked(e -> action.run());
+        item.setOnMouseClicked(e -> {
+            soundsAndButtons.playClick();
+            action.run();
+        });
         item.setFocusTraversable(true);
         item.setOnKeyPressed(e -> {
             if (e.getCode() == KeyCode.ENTER || e.getCode() == KeyCode.SPACE) {
+                soundsAndButtons.playClick();
                 action.run();
             }
         });
@@ -1929,6 +1967,7 @@ public class App extends Application {
                 option.getStyleClass().add("quality-option-selected");
             }
             option.setAccessibleText("Preferred video quality: " + quality);
+            soundsAndButtons.addButtonSound(option, true);
             option.setOnAction(e -> {
                 playbackQuality = quality;
                 showPlaybackSettings();
@@ -1960,11 +1999,15 @@ public class App extends Application {
         Label termsHeading = new Label("Provider terms");
         termsHeading.getStyleClass().add("detail-section-heading");
         Hyperlink tmdbTerms = new Hyperlink("TMDB Terms of Use");
-        tmdbTerms.setOnAction(e -> getHostServices().showDocument(
-                "https://www.themoviedb.org/terms-of-use"));
+        tmdbTerms.setOnAction(e -> {
+            soundsAndButtons.playClick();
+            getHostServices().showDocument("https://www.themoviedb.org/terms-of-use");
+        });
         Hyperlink youtubeTerms = new Hyperlink("YouTube Terms of Service");
-        youtubeTerms.setOnAction(e -> getHostServices().showDocument(
-                "https://www.youtube.com/t/terms"));
+        youtubeTerms.setOnAction(e -> {
+            soundsAndButtons.playClick();
+            getHostServices().showDocument("https://www.youtube.com/t/terms");
+        });
         HBox termsLinks = new HBox(16, tmdbTerms, youtubeTerms);
 
         details.getChildren().addAll(termsHeading, termsLinks);
@@ -2018,6 +2061,7 @@ public class App extends Application {
         content.getChildren().add(title);
 
         for (String genre : new String[] {"Action", "Adventure", "Sci-Fi"}) {
+
             VBox genreSection = new VBox(15);
             genreSection.setAlignment(Pos.TOP_LEFT);
             Text genreTitle = new Text(genre + " TV Shows");
@@ -2053,8 +2097,8 @@ public class App extends Application {
         title.getStyleClass().add("screen-title");
 
         content.getChildren().add(title);
-
-        for (String genre : new String[] {"Action", "Adventure", "Sci-Fi"}) {
+        for 
+        (String genre : new String[] {"Action", "Adventure", "Sci-Fi"}) {
 
             VBox genreSection = new VBox(15);
             genreSection.setAlignment(Pos.TOP_LEFT);
@@ -2159,6 +2203,7 @@ public class App extends Application {
         btn.getStyleClass().add("primary-button");
         btn.setPrefHeight(45);
         btn.setPadding(new Insets(0, 30, 0, 30));
+        soundsAndButtons.addButtonSound(btn, false);
 
         ScaleTransition scaleIn = new ScaleTransition(Duration.millis(150), btn);
         scaleIn.setToX(1.05);
@@ -2185,6 +2230,7 @@ public class App extends Application {
         btn.getStyleClass().add("secondary-button");
         btn.setPrefHeight(45);
         btn.setPadding(new Insets(0, 30, 0, 30));
+        soundsAndButtons.addButtonSound(btn, false);
 
         ScaleTransition scaleIn = new ScaleTransition(Duration.millis(150), btn);
         scaleIn.setToX(1.05);
