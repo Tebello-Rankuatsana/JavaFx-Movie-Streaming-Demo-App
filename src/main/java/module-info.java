@@ -3,6 +3,7 @@ module streaming {
     requires javafx.web;
     requires java.net.http;
     requires com.google.gson;
+    requires javafx.media;
 
     exports streaming;
 }
