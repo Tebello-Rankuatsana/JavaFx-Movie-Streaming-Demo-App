@@ -33,13 +33,16 @@ import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.concurrent.Worker;
+import javafx.css.PseudoClass;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Hyperlink;
@@ -54,6 +57,8 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
@@ -112,13 +117,12 @@ public class App extends Application {
     private VBox categoriesScreen;
     private VBox settingsScreen;
     private VBox notificationsScreen;
-    private Button notificationsBackButton;
+    private CustomButton notificationsBackButton;
     private VBox tvShowsScreen;
     private VBox moviesScreen;
     private BorderPane mediaPlayerScreen;
 
     // Data Models
- 
     private final List<Movie> allMovies = new ArrayList<>();
     private final List<Movie> allTvShows = new ArrayList<>();
     private final List<Movie> watchlist = new ArrayList<>();
@@ -129,13 +133,11 @@ public class App extends Application {
 
     // Profile, Settings & Media Player State
     private Stage mainStage;
- 
     private String profileName = "Alexander";
-  
     private String profileEmail = "alexander@example.com";
     private String preferredLanguage = "English";
     private boolean membershipActive = true;
-    private Button homeProfileButton;
+    private CustomButton homeProfileButton;
     private Text homeProfileInitial;
     private String playbackQuality = "1080p";
     private StackPane videoContainer;
@@ -144,11 +146,10 @@ public class App extends Application {
     private Label playbackErrorLabel;
     private Label playerTitleLabel;
     private String previousWindowTitle;
-    private Button fullscreenButton;
-    private Button openTrailerButton;
+    private CustomButton fullscreenButton;
+    private CustomButton openTrailerButton;
     private StackPane customPlayPauseButton;
     private WebView trailerWebView;
-  
     private String tmdbApiKey;
     private String currentYoutubeKey;
     private long trailerRequestId;
@@ -193,7 +194,6 @@ public class App extends Application {
         addMovie("Oblivion", "Sci-Fi", "/images/Movies/Sci-Fi/oblivion.jpg");
         addMovie("Elysium", "Sci-Fi", "/images/Movies/Sci-Fi/Movie Elysium.jpg");
         addMovie("Avengers: Endgame", "Sci-Fi", "/images/Movies/Sci-Fi/avengers endgame.jpg");
-
 
         addTvShow("Reacher", "Action", "/images/Tv Shows/Action/jack-reacher.jpg");
         addTvShow("The Night Agent", "Action", "/images/Tv Shows/Action/the-night-agent.jpg");
@@ -260,15 +260,12 @@ public class App extends Application {
         root = new BorderPane();
         root.getStyleClass().add("root-pane");
 
-
         sidebar = createSidebar();
         root.setLeft(sidebar);
-
 
         contentArea = new StackPane();
         contentArea.getStyleClass().add("content-area");
         root.setCenter(contentArea);
-
 
         createHomeScreen();
         createMovieDetailsScreen();
@@ -303,7 +300,7 @@ public class App extends Application {
         stage.show();
     }
 
-    // SIDEBAR
+    // Sidebar
     private VBox createSidebar() {
         VBox side = new VBox(10);
         side.getStyleClass().add("sidebar");
@@ -331,12 +328,12 @@ public class App extends Application {
         VBox navLinks = new VBox(14);
         navLinks.setAlignment(Pos.TOP_CENTER);
 
-        Button btnHome = createNavButton("Home");
-        Button btnMovies = createNavButton("Movies");
-        Button btnTVShows = createNavButton("TV Shows");
-        Button btnCategories = createNavButton("Categories");
-        Button btnWatchlist = createNavButton("Watchlist");
-        Button btnSettings = createNavButton("Settings");
+        CustomButton btnHome = createNavButton("Home");
+        CustomButton btnMovies = createNavButton("Movies");
+        CustomButton btnTVShows = createNavButton("TV Shows");
+        CustomButton btnCategories = createNavButton("Categories");
+        CustomButton btnWatchlist = createNavButton("Watchlist");
+        CustomButton btnSettings = createNavButton("Settings");
 
         updateNavButtonStyle(btnHome, true);
 
@@ -383,19 +380,18 @@ public class App extends Application {
         return side;
     }
 
-    private Button createNavButton(String text) {
+    private CustomButton createNavButton(String text) {
         String icon = navigationIcon(text);
-        Button btn = new Button();
+        CustomButton btn = new CustomButton();
         btn.getStyleClass().add("nav-button");
         btn.setGraphic(createPlayerIcon(icon));
         btn.setAccessibleText(text);
         btn.setFocusTraversable(true);
-        soundsAndButtons.addButtonSound(btn, false);
+        addButtonSound(btn, false);
         return btn;
     }
 
-
-    private VBox createNavItem(Button button, String text) {
+    private VBox createNavItem(CustomButton button, String text) {
         Label label = new Label(text);
         label.getStyleClass().add("nav-label");
         label.setAlignment(Pos.CENTER);
@@ -412,13 +408,13 @@ public class App extends Application {
         return item;
     }
 
-    private void updateNavButtonStyle(Button btn, boolean active) {
+    private void updateNavButtonStyle(CustomButton btn, boolean active) {
         btn.getStyleClass().removeAll("nav-button", "nav-button-active");
         btn.getStyleClass().add(active ? "nav-button-active" : "nav-button");
         setNavIconColor(btn, active);
     }
 
-    private void setNavIconColor(Button btn, boolean active) {
+    private void setNavIconColor(CustomButton btn, boolean active) {
         StackPane iconBox = (StackPane) btn.getGraphic();
         SVGPath icon = (SVGPath) iconBox.getChildren().get(0);
         icon.setFill(active ? Color.web(GOLD_ACCENT) : Color.web(TEXT_MUTED));
@@ -443,8 +439,8 @@ public class App extends Application {
         }
     }
 
-    private void resetNavs(Button... buttons) {
-        for (Button b : buttons) {
+    private void resetNavs(CustomButton... buttons) {
+        for (CustomButton b : buttons) {
             b.getStyleClass().remove("nav-button-active");
             if (!b.getStyleClass().contains("nav-button")) {
                 b.getStyleClass().add("nav-button");
@@ -453,7 +449,7 @@ public class App extends Application {
         }
     }
 
-    // TOP BAR (Search, Notifications, Profile)
+    // Top bar (search, notifications, profile)
     private StackPane createTopBar() {
         StackPane topBar = new StackPane();
         topBar.getStyleClass().add("home-top-bar");
@@ -486,7 +482,6 @@ public class App extends Application {
         searchField.getStyleClass().add("search-field");
         searchField.setPromptText("Search movies and TV shows by title or genre...");
         searchField.setPrefWidth(390);
-   
         searchField.setFocusTraversable(true);
         HBox.setHgrow(searchField, Priority.ALWAYS);
         searchBox.getChildren().addAll(searchIconBox, searchField);
@@ -499,33 +494,29 @@ public class App extends Application {
         searchResultsPane.setFitToWidth(true);
         searchResultsPane.setMaxHeight(520);
         searchResultsPane.setVisible(false);
-   
         searchResultsPane.setManaged(false);
         homeSearchResultsPane = searchResultsPane;
 
         searchArea.getChildren().add(searchBox);
         searchField.textProperty().addListener((obs, oldValue, newValue) ->
                 updateSearchResults(newValue, searchResults, searchResultsPane, searchField));
-   
-                searchField.setOnAction(e -> {
-  
+
+        searchField.setOnAction(e -> {
             if (!searchResults.getChildren().isEmpty()
-                    && searchResults.getChildren().get(0) instanceof Button) {
-                ((Button) searchResults.getChildren().get(0)).fire();
+                    && searchResults.getChildren().get(0) instanceof CustomButton) {
+                ((CustomButton) searchResults.getChildren().get(0)).fire();
             }
         });
 
-        Button notifBtn = new Button();
+        CustomButton notifBtn = new CustomButton();
         notifBtn.getStyleClass().add("notification-button");
         notifBtn.setGraphic(createPlayerIcon("M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9zm-8 12h4a2 2 0 0 1-4 0z"));
         notifBtn.setTooltip(new Tooltip("Notifications"));
         notifBtn.setAccessibleText("Notifications: updates and service terms");
-        soundsAndButtons.addButtonSound(notifBtn, false);
+        addButtonSound(notifBtn, false);
         notifBtn.setOnAction(e -> showNotifications(this::showHomeScreen, "Back to Home"));
 
-
-        homeProfileButton = new Button();
-   
+        homeProfileButton = new CustomButton();
         homeProfileButton.getStyleClass().add("profile-button");
         Circle profileAvatar = new Circle(17, Color.web(TEAL_PANEL));
         profileAvatar.setStroke(Color.web(CYAN_ACCENT));
@@ -536,7 +527,7 @@ public class App extends Application {
         StackPane avatar = new StackPane(profileAvatar, homeProfileInitial);
         homeProfileButton.setGraphic(avatar);
         updateHomeProfileButton();
-        soundsAndButtons.addButtonSound(homeProfileButton, false);
+        addButtonSound(homeProfileButton, false);
         homeProfileButton.setOnAction(e -> showProfileInfo(this::showHomeScreen));
 
         HBox actions = new HBox(12, notifBtn, homeProfileButton);
@@ -563,7 +554,6 @@ public class App extends Application {
     }
 
     private String profileInitials(String name) {
-   
         String[] parts = name.trim().split("\\s+");
         if (parts.length == 1) {
             return parts[0].substring(0, 1).toUpperCase(Locale.ROOT);
@@ -572,7 +562,6 @@ public class App extends Application {
                 .toUpperCase(Locale.ROOT);
     }
 
-   
     private void showNotifications(Runnable backAction, String backLabel) {
         notificationsBackButton.setOnAction(e -> backAction.run());
         notificationsBackButton.setTooltip(new Tooltip(backLabel));
@@ -583,9 +572,7 @@ public class App extends Application {
     }
 
     private void createNotificationsScreen() {
-  
         notificationsScreen = new VBox(0);
- 
         notificationsScreen.getStyleClass().add("screen");
         notificationsScreen.getStyleClass().add("notifications-screen");
 
@@ -605,7 +592,6 @@ public class App extends Application {
         intro.setWrapText(true);
 
         VBox updates = new VBox(14);
- 
         updates.getChildren().addAll(
                 notificationItem("Movie and TV details",
                         "Cast, creators, languages, and ratings are provided by TMDB."),
@@ -617,7 +603,6 @@ public class App extends Application {
                         "This demo is provided under the repository's MIT License. TMDB and YouTube services are subject to their own terms."));
 
         Label termsHeading = new Label("External service terms");
- 
         termsHeading.getStyleClass().add("detail-section-heading");
         Hyperlink tmdbTerms = new Hyperlink("TMDB Terms of Use");
         tmdbTerms.setOnAction(e -> {
@@ -660,7 +645,7 @@ public class App extends Application {
 
         VBox content = new VBox(24);
         content.setPadding(new Insets(40, 50, 60, 50));
-        Button backButton = createPlayerButton(
+        CustomButton backButton = createPlayerButton(
                 "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z",
                 "player-back-button", "Back");
         backButton.setOnAction(e -> returnAction.run());
@@ -687,9 +672,8 @@ public class App extends Application {
 
         Label detailsTitle = new Label("Profile details");
         detailsTitle.getStyleClass().add("detail-section-heading");
- 
-        TextField nameField = new TextField(profileName);
 
+        TextField nameField = new TextField(profileName);
         TextField emailField = new TextField(profileEmail);
         TextField languageField = new TextField(preferredLanguage);
         nameField.setPromptText("Full name");
@@ -709,15 +693,15 @@ public class App extends Application {
                 notificationItem("Plan", "Premium"),
                 notificationItem("Status", membershipActive ? "Active" : "Cancelled"),
                 notificationItem("Billing", "This demo does not connect to billing. Membership changes only affect the current app session."));
-        Button saveButton = createPrimaryButton("Save profile changes");
+        CustomButton saveButton = createPrimaryButton("Save profile changes");
         saveButton.setOnAction(e -> saveProfileChanges(nameField, emailField, languageField, returnAction));
 
         VBox profileDetails = new VBox(18, detailsTitle, profileForm, saveButton,
                 membershipTitle, membershipDetails);
         if (membershipActive) {
-            Button cancelMembershipButton = new Button("Cancel membership");
+            CustomButton cancelMembershipButton = new CustomButton("Cancel membership");
             cancelMembershipButton.getStyleClass().add("profile-danger-button");
-            soundsAndButtons.addButtonSound(cancelMembershipButton, true);
+            addButtonSound(cancelMembershipButton, true);
             cancelMembershipButton.setOnAction(e -> confirmMembershipCancellation(returnAction));
             profileDetails.getChildren().add(cancelMembershipButton);
         }
@@ -758,7 +742,6 @@ public class App extends Application {
     }
 
     private void confirmMembershipCancellation(Runnable returnAction) {
- 
         Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION,
                 "Cancel the Premium membership? This demo will only change the displayed status for this app session; it will not contact a billing service.",
                 ButtonType.OK, ButtonType.CANCEL);
@@ -775,17 +758,13 @@ public class App extends Application {
     private void updateSearchResults(String query, VBox results, ScrollPane resultsPane,
             TextField searchField) {
         results.getChildren().clear();
- 
         String normalizedQuery = query == null ? ""
                 : query.trim().toLowerCase(Locale.ROOT);
         if (normalizedQuery.isEmpty()) {
-   
             resultsPane.setVisible(false);
             resultsPane.setManaged(false);
             return;
- 
         }
-
 
         List<Movie> searchableMedia = new ArrayList<>(allMovies);
         searchableMedia.addAll(allTvShows);
@@ -797,29 +776,25 @@ public class App extends Application {
             }
         }
 
- 
         if (matches.isEmpty()) {
             Label emptyResult = new Label("Not available in this app");
             emptyResult.getStyleClass().add("search-empty-result");
             results.getChildren().add(emptyResult);
- 
         } else {
             Label resultHeading = new Label(matches.size() + " available in this app");
             resultHeading.getStyleClass().add("search-results-heading");
             results.getChildren().add(resultHeading);
             for (Movie media : matches) {
                 String mediaType = media.isTvShow ? "TV Show" : "Movie";
-                Button result = new Button(mediaType + "  |  " + media.title + "  -  " + media.genre);
+                CustomButton result = new CustomButton(mediaType + "  |  " + media.title + "  -  " + media.genre);
                 result.getStyleClass().add("search-result-button");
                 result.setMaxWidth(Double.MAX_VALUE);
                 result.setMinHeight(60);
                 result.setPrefHeight(60);
                 result.setAlignment(Pos.CENTER_LEFT);
-                soundsAndButtons.addButtonSound(result, false);
+                addButtonSound(result, false);
                 result.setOnAction(e -> {
- 
                     searchField.clear();
- 
                     resultsPane.setVisible(false);
                     resultsPane.setManaged(false);
                     showMovieDetails(media);
@@ -834,8 +809,7 @@ public class App extends Application {
         resultsPane.setVisible(true);
     }
 
-    
-    // HOME SCREEN
+    // Home screen
     private void createHomeScreen() {
         homeScreen = new StackPane();
         homeScreen.getStyleClass().add("screen");
@@ -843,9 +817,7 @@ public class App extends Application {
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.getStyleClass().add("scroll-pane");
         scrollPane.setFitToWidth(true);
-
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-
 
         VBox contentBox = new VBox(26);
         contentBox.setPadding(new Insets(16, 0, 40, 0));
@@ -869,26 +841,20 @@ public class App extends Application {
         contentBox.getChildren().addAll(
                 moviesHeading, trendingRow, popularRow, recentlyRow,
                 tvHeading, actionTvRow, adventureTvRow, sciFiTvRow);
-                scrollPane.setContent(contentBox);
-
+        scrollPane.setContent(contentBox);
 
         StackPane topBar = createTopBar();
         VBox homeLayout = new VBox(0, topBar, scrollPane);
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
- 
         homeScreen.getChildren().add(homeLayout);
 
-
         StackPane.setAlignment(homeSearchResultsPane, Pos.TOP_CENTER);
- 
         StackPane.setMargin(homeSearchResultsPane, new Insets(82, 0, 0, 0));
         homeSearchResultsPane.minWidthProperty().bind(homeSearchArea.widthProperty());
         homeSearchResultsPane.prefWidthProperty().bind(homeSearchArea.widthProperty());
         homeSearchResultsPane.maxWidthProperty().bind(homeSearchArea.widthProperty());
         homeScreen.getChildren().add(homeSearchResultsPane);
-  
     }
-
 
     private VBox createMovieRow(String title, List<Movie> movies) {
         VBox section = new VBox(15);
@@ -931,7 +897,6 @@ public class App extends Application {
 
         ImageView posterImage = createPosterImageView(movie.imageUrl, 180, 270);
 
-
         Rectangle clip = new Rectangle(180, 270);
         clip.setArcWidth(16);
         clip.setArcHeight(16);
@@ -947,7 +912,6 @@ public class App extends Application {
         playOverlay.setMaxSize(180, 270);
         playOverlay.setOpacity(0);
         playOverlay.setMouseTransparent(true);
-
 
         Text playIcon = new Text("Play");
         playIcon.getStyleClass().add("play-icon");
@@ -986,7 +950,7 @@ public class App extends Application {
         Timeline restorePosterBrightness = new Timeline(new KeyFrame(Duration.millis(220),
                 new KeyValue(posterBrightness.brightnessProperty(), 0, Interpolator.EASE_BOTH)));
 
-     card.setOnMouseEntered(e -> {
+        card.setOnMouseEntered(e -> {
             soundsAndButtons.playHoverToggle();
             playOverlay.setMouseTransparent(false);
             scaleIn.playFromStart();
@@ -1010,8 +974,7 @@ public class App extends Application {
         return card;
     }
 
-   
-    // MEDIA PLAYER SCREEN
+    // Media player screen
     private void createMediaPlayerScreen() {
         mediaPlayerScreen = new BorderPane();
         mediaPlayerScreen.getStyleClass().add("player-screen");
@@ -1082,7 +1045,7 @@ public class App extends Application {
         StackPane.setAlignment(playbackErrorLabel, Pos.TOP_CENTER);
         StackPane.setMargin(playbackErrorLabel, new Insets(18));
 
-        Button backButton = createPlayerButton(
+        CustomButton backButton = createPlayerButton(
                 "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z",
                 "player-back-button", "Back");
         backButton.setOnAction(e -> closePlayer());
@@ -1109,13 +1072,13 @@ public class App extends Application {
         });
     }
 
-    private Button createPlayerButton(String iconPath, String styleClass, String tooltip) {
-        Button button = new Button();
+    private CustomButton createPlayerButton(String iconPath, String styleClass, String tooltip) {
+        CustomButton button = new CustomButton();
         button.getStyleClass().add(styleClass);
         button.setGraphic(createPlayerIcon(iconPath));
         button.setTooltip(new Tooltip(tooltip));
         button.setAccessibleText(tooltip);
-        soundsAndButtons.addButtonSound(button, false);
+        addButtonSound(button, false);
         return button;
     }
 
@@ -1162,9 +1125,7 @@ public class App extends Application {
         playerEntrance.play();
         mainStage.setTitle("StreamFlix - " + movie.title);
 
- 
         if (tmdbApiKey == null) {
- 
             tmdbApiKey = requestTmdbApiKey();
             if (tmdbApiKey == null) {
                 stopPlayerLoading();
@@ -1175,7 +1136,6 @@ public class App extends Application {
         fetchTrailer(movie, tmdbApiKey);
     }
 
-   
     private String requestTmdbApiKey() {
         Dialog<String> dialog = new Dialog<>();
         dialog.initOwner(mainStage);
@@ -1198,7 +1158,6 @@ public class App extends Application {
     }
 
     private void fetchTrailer(Movie movie, String apiKey) {
-   
         long requestId = ++trailerRequestId;
         CompletableFuture.supplyAsync(() -> lookupTrailer(movie, apiKey))
                 .whenComplete((youtubeKey, error) -> Platform.runLater(() -> {
@@ -1207,8 +1166,7 @@ public class App extends Application {
                     }
                     if (error != null) {
                         Throwable cause = error instanceof CompletionException
-  
-                        ? error.getCause() : error;
+                                ? error.getCause() : error;
                         if (cause instanceof InvalidTmdbApiKeyException
                                 && apiKey.equals(tmdbApiKey)) {
                             tmdbApiKey = null;
@@ -1227,14 +1185,12 @@ public class App extends Application {
                             showPlaybackError("The embedded YouTube player is taking too long to load. Use Open in browser to watch this trailer.");
                         }
                     });
-   
                     playerLoadTimeout.playFromStart();
                     trailerWebView.getEngine().load(
                             "https://www.youtube-nocookie.com/embed/" + youtubeKey
                                     + "?autoplay=1&rel=0");
                 }));
     }
-
 
     private String lookupTrailer(Movie media, String apiKey) {
         String mediaId = findTmdbMediaId(media, apiKey);
@@ -1268,13 +1224,11 @@ public class App extends Application {
 
         String youtubeKey = jsonString(firstTrailer, "key");
         if (!youtubeKey.matches("[A-Za-z0-9_-]+")) {
-          
             throw new TrailerLookupException("TMDB returned an invalid YouTube trailer ID.");
         }
 
         return youtubeKey;
     }
-
 
     private MovieMetadata lookupMovieMetadata(Movie media, String apiKey) {
         String mediaId = findTmdbMediaId(media, apiKey);
@@ -1397,7 +1351,6 @@ public class App extends Application {
 
     private JsonObject getTmdbJson(String url, String apiKey) {
         try {
-
             boolean readAccessToken = isReadAccessToken(apiKey);
             String requestUrl = readAccessToken ? url
                     : url + (url.contains("?") ? "&" : "?")
@@ -1575,10 +1528,8 @@ public class App extends Application {
         }
     }
 
-    // MOVIE DETAILS SCREEN
-
+    // Movie details screen
     private void createMovieDetailsScreen() {
-
         movieDetailsScreen = new VBox(0);
         movieDetailsScreen.getStyleClass().add("movie-details-screen");
 
@@ -1599,7 +1550,7 @@ public class App extends Application {
         movieDetailsContainer.getChildren().clear();
         detailIsTvShow = movie.isTvShow;
 
-        Button backButton = createPlayerButton(
+        CustomButton backButton = createPlayerButton(
                 "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z",
                 "player-back-button", movie.isTvShow ? "Back to TV Shows" : "Back to Home");
         backButton.setOnAction(e -> {
@@ -1610,9 +1561,9 @@ public class App extends Application {
             }
         });
 
-        Button playButton = createPrimaryButton("Play Trailer");
+        CustomButton playButton = createPrimaryButton("Play Trailer");
         playButton.setOnAction(e -> openPlayer(movie));
-        Button watchlistButton = createSecondaryButton(
+        CustomButton watchlistButton = createSecondaryButton(
                 watchlist.contains(movie) ? "In Watchlist" : "Add to Watchlist");
         watchlistButton.setOnAction(e -> {
             soundsAndButtons.playToggle();
@@ -1769,10 +1720,8 @@ public class App extends Application {
         return value == null || value.isEmpty() ? "Not available" : value;
     }
 
-    // OTHER SCREENS
-
+    // Other screens
     private void createWatchlistScreen() {
-
         watchlistScreen = new VBox(0);
         watchlistScreen.getStyleClass().add("screen");
         ScrollPane scrollPane = new ScrollPane();
@@ -1833,16 +1782,16 @@ public class App extends Application {
                 Region spacer = new Region();
                 HBox.setHgrow(spacer, Priority.ALWAYS);
 
-                Button playBtn = createPrimaryButton("Play");
+                CustomButton playBtn = createPrimaryButton("Play");
                 playBtn.setPrefWidth(100);
                 playBtn.setPrefHeight(40);
                 playBtn.setOnAction(e -> showMovieDetails(movie));
 
-                Button removeBtn = new Button("Remove");
+                CustomButton removeBtn = new CustomButton("Remove");
                 removeBtn.getStyleClass().add("remove-button");
                 removeBtn.setPrefWidth(100);
                 removeBtn.setPrefHeight(40);
-                soundsAndButtons.addButtonSound(removeBtn, true);
+                addButtonSound(removeBtn, true);
                 removeBtn.setOnAction(e -> {
                     watchlist.remove(movie);
                     refreshWatchlistScreen();
@@ -1861,13 +1810,11 @@ public class App extends Application {
         scrollPane.getStyleClass().add("scroll-pane");
         scrollPane.setFitToWidth(true);
 
-
         VBox content = new VBox(26);
         content.setPadding(new Insets(16, 0, 40, 0));
         Text title = new Text("Browse Categories");
         title.getStyleClass().add("screen-title");
         VBox.setMargin(title, new Insets(0, 36, -12, 36));
-
 
         Text moviesHeading = new Text("Movies");
         moviesHeading.getStyleClass().add("section-title");
@@ -1876,10 +1823,7 @@ public class App extends Application {
         content.getChildren().add(moviesHeading);
         content.getChildren().add(createMovieRow("Action", categoryMovies("Action")));
         content.getChildren().add(createMovieRow("Adventure", categoryMovies("Adventure")));
-
         content.getChildren().add(createMovieRow("Sci-Fi", categoryMovies("Sci-Fi")));
-
-
 
         Text tvShowsHeading = new Text("TV Series");
         tvShowsHeading.getStyleClass().add("section-title");
@@ -1952,7 +1896,6 @@ public class App extends Application {
     }
 
     private void showPlaybackSettings() {
-
         Label description = new Label("Choose your preferred video quality. The quality available during playback depends on the video and playback provider.");
         description.getStyleClass().add("detail-synopsis");
         description.setWrapText(true);
@@ -1961,13 +1904,13 @@ public class App extends Application {
         qualityHeading.getStyleClass().add("detail-section-heading");
         FlowPane qualityOptions = new FlowPane(12, 12);
         for (String quality : List.of("360p", "480p", "720p", "1080p", "2K (1440p)")) {
-            Button option = new Button(quality);
+            CustomButton option = new CustomButton(quality);
             option.getStyleClass().add("quality-option");
             if (quality.equals(playbackQuality)) {
                 option.getStyleClass().add("quality-option-selected");
             }
             option.setAccessibleText("Preferred video quality: " + quality);
-            soundsAndButtons.addButtonSound(option, true);
+            addButtonSound(option, true);
             option.setOnAction(e -> {
                 playbackQuality = quality;
                 showPlaybackSettings();
@@ -1981,7 +1924,6 @@ public class App extends Application {
     }
 
     private void showPrivacySettings() {
-
         Label introduction = new Label("Please review this notice before using the StreamFlix demo. By continuing to use the app, you acknowledge how it handles information and that connected services have their own terms.");
         introduction.getStyleClass().add("detail-synopsis");
         introduction.setWrapText(true);
@@ -2025,10 +1967,9 @@ public class App extends Application {
         scrollPane.setFitToWidth(true);
 
         VBox content = new VBox(24);
-
         content.setPadding(new Insets(40, 50, 60, 50));
 
-        Button backButton = createScreenBackButton("Back to Settings", this::showSettingsScreen);
+        CustomButton backButton = createScreenBackButton("Back to Settings", this::showSettingsScreen);
         Text screenTitle = new Text(title);
         screenTitle.getStyleClass().add("screen-title");
         content.getChildren().addAll(backButton, screenTitle, details);
@@ -2037,8 +1978,8 @@ public class App extends Application {
         return screen;
     }
 
-    private Button createScreenBackButton(String label, Runnable action) {
-        Button backButton = createPlayerButton(
+    private CustomButton createScreenBackButton(String label, Runnable action) {
+        CustomButton backButton = createPlayerButton(
                 "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z",
                 "player-back-button", label);
         backButton.setOnAction(e -> action.run());
@@ -2061,7 +2002,6 @@ public class App extends Application {
         content.getChildren().add(title);
 
         for (String genre : new String[] {"Action", "Adventure", "Sci-Fi"}) {
-
             VBox genreSection = new VBox(15);
             genreSection.setAlignment(Pos.TOP_LEFT);
             Text genreTitle = new Text(genre + " TV Shows");
@@ -2097,9 +2037,7 @@ public class App extends Application {
         title.getStyleClass().add("screen-title");
 
         content.getChildren().add(title);
-        for 
-        (String genre : new String[] {"Action", "Adventure", "Sci-Fi"}) {
-
+        for (String genre : new String[] {"Action", "Adventure", "Sci-Fi"}) {
             VBox genreSection = new VBox(15);
             genreSection.setAlignment(Pos.TOP_LEFT);
             Text genreTitle = new Text(genre + " Movies");
@@ -2121,7 +2059,7 @@ public class App extends Application {
         moviesScreen.getChildren().add(scrollPane);
     }
 
-    // SCREEN SWITCHING & REUSABLE BUTTONS
+    // Screen switching and reusable buttons
     private void showHomeScreen() {
         root.setLeft(sidebar);
         contentArea.getChildren().setAll(homeScreen);
@@ -2155,7 +2093,6 @@ public class App extends Application {
 
     private Image loadPoster(String resourcePath) {
         URL posterResource = getClass().getResource(resourcePath);
-
         return posterResource == null
                 ? new WritableImage(1, 1)
                 : new Image(posterResource.toExternalForm(), true);
@@ -2198,12 +2135,12 @@ public class App extends Application {
         return imageView;
     }
 
-    private Button createPrimaryButton(String text) {
-        Button btn = new Button(text);
+    private CustomButton createPrimaryButton(String text) {
+        CustomButton btn = new CustomButton(text);
         btn.getStyleClass().add("primary-button");
         btn.setPrefHeight(45);
         btn.setPadding(new Insets(0, 30, 0, 30));
-        soundsAndButtons.addButtonSound(btn, false);
+        addButtonSound(btn, false);
 
         ScaleTransition scaleIn = new ScaleTransition(Duration.millis(150), btn);
         scaleIn.setToX(1.05);
@@ -2225,12 +2162,12 @@ public class App extends Application {
         return btn;
     }
 
-    private Button createSecondaryButton(String text) {
-        Button btn = new Button(text);
+    private CustomButton createSecondaryButton(String text) {
+        CustomButton btn = new CustomButton(text);
         btn.getStyleClass().add("secondary-button");
         btn.setPrefHeight(45);
         btn.setPadding(new Insets(0, 30, 0, 30));
-        soundsAndButtons.addButtonSound(btn, false);
+        addButtonSound(btn, false);
 
         ScaleTransition scaleIn = new ScaleTransition(Duration.millis(150), btn);
         scaleIn.setToX(1.05);
@@ -2250,7 +2187,66 @@ public class App extends Application {
         return btn;
     }
 
-    // DATA CLASSES
+    // Plays the click sound (or the toggle sound when toggle is true) whenever the button fires
+    private void addButtonSound(CustomButton button, boolean toggle) {
+        button.addEventHandler(ActionEvent.ACTION, e -> {
+            if (toggle) {
+                soundsAndButtons.playToggle();
+            } else {
+                soundsAndButtons.playClick();
+            }
+        });
+    }
+
+    // Custom button built on Label (text and/or graphic), so it is not a javafx.scene.control.Button
+    private static class CustomButton extends Label {
+        private static final PseudoClass PRESSED = PseudoClass.getPseudoClass("pressed");
+
+        CustomButton() {
+            this("");
+        }
+
+        CustomButton(String text) {
+            super(text);
+            getStyleClass().add("custom-button");
+            setAlignment(Pos.CENTER);
+            setPadding(new Insets(4, 9, 4, 9));
+            setMinWidth(Region.USE_PREF_SIZE);
+            setCursor(Cursor.HAND);
+            setFocusTraversable(true);
+
+            addEventHandler(MouseEvent.MOUSE_PRESSED, e -> {
+                if (e.getButton() == MouseButton.PRIMARY && !isDisabled()) {
+                    pseudoClassStateChanged(PRESSED, true);
+                    requestFocus();
+                }
+            });
+            addEventHandler(MouseEvent.MOUSE_RELEASED, e -> pseudoClassStateChanged(PRESSED, false));
+            addEventHandler(MouseEvent.MOUSE_CLICKED, e -> {
+                if (e.getButton() == MouseButton.PRIMARY) {
+                    fire();
+                }
+            });
+            addEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+                if (e.getCode() == KeyCode.ENTER || e.getCode() == KeyCode.SPACE) {
+                    fire();
+                    e.consume();
+                }
+            });
+        }
+
+        void setOnAction(EventHandler<ActionEvent> handler) {
+            setEventHandler(ActionEvent.ACTION, handler);
+        }
+
+        void fire() {
+            if (!isDisabled()) {
+                fireEvent(new ActionEvent(this, this));
+            }
+        }
+    }
+
+    // Data classes
     private static class MovieMetadata {
         final String overview;
         final String cast;
