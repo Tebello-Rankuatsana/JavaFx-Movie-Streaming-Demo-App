@@ -32,6 +32,10 @@ import javafx.animation.ScaleTransition;
 import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ReadOnlyDoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Worker;
 import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
@@ -88,9 +92,20 @@ public class App extends Application {
     private static final String TEXT_MUTED = "#8B9EB0";
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
-    // A row shows exactly 5 thumbnails: 5 cards (180 wide) + 4 gaps (20) + 8px padding each side,
-    // plus a little slack for the scroll pane border. Remaining cards are reached by scrolling.
-    private static final double ROW_VIEWPORT_WIDTH = 1000;
+    // Every row shows exactly 5 thumbnails; the rest are reached by scrolling
+    private static final int VISIBLE_THUMBNAILS = 5;
+    private static final double CARD_GAP = 20;
+    private static final double POSTER_ASPECT = 1.5;
+    private static final double MIN_CARD_WIDTH = 110;
+    private static final double MAX_CARD_WIDTH = 300;
+    // Row padding (8 + 8), the gaps between the 5 cards, and a few pixels for the scroll pane border
+    private static final double ROW_EXTRA_WIDTH = 16 + (VISIBLE_THUMBNAILS - 1) * CARD_GAP + 4;
+    // Horizontal padding around each row (36 + 36)
+    private static final double ROW_OUTER_PADDING = 72;
+
+    // Width of a thumbnail card. Everything that depends on it is bound to this property,
+    // so resizing the window resizes the thumbnails and the rows keep showing 5 of them.
+    private final DoubleProperty cardWidth = new SimpleDoubleProperty(180);
 
     // Sounds & Custom Controls Helper
     private final SoundsAndButtons soundsAndButtons = new SoundsAndButtons();
@@ -272,6 +287,11 @@ public class App extends Application {
         contentArea.getStyleClass().add("content-area");
         root.setCenter(contentArea);
 
+        // Resize the thumbnails whenever the space next to the sidebar changes
+        ReadOnlyDoubleProperty contentWidth = contentArea.widthProperty();
+        contentWidth.addListener((ObservableValue<? extends Number> prop, Number oldVal, Number newVal) ->
+                updateCardWidth(newVal.doubleValue()));
+
         createHomeScreen();
         createMovieDetailsScreen();
         createWatchlistScreen();
@@ -303,6 +323,15 @@ public class App extends Application {
         stage.setMinWidth(Math.min(800, windowWidth));
         stage.setMinHeight(Math.min(500, windowHeight));
         stage.show();
+    }
+
+    // Works out the card width so that 5 cards exactly fill the available row width
+    private void updateCardWidth(double availableWidth) {
+        if (availableWidth <= 0) {
+            return;
+        }
+        double width = (availableWidth - ROW_OUTER_PADDING - ROW_EXTRA_WIDTH) / VISIBLE_THUMBNAILS;
+        cardWidth.set(Math.max(MIN_CARD_WIDTH, Math.min(MAX_CARD_WIDTH, width)));
     }
 
     // Sidebar
@@ -874,8 +903,8 @@ public class App extends Application {
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
         scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setFitToHeight(true);
-        scroll.setPrefWidth(ROW_VIEWPORT_WIDTH);
-        scroll.setMaxWidth(ROW_VIEWPORT_WIDTH);
+        scroll.prefWidthProperty().bind(cardWidth.multiply(VISIBLE_THUMBNAILS).add(ROW_EXTRA_WIDTH));
+        scroll.maxWidthProperty().bind(scroll.prefWidthProperty());
 
         HBox cardBox = new HBox(20);
         cardBox.setPadding(new Insets(12, 8, 26, 8));
@@ -892,20 +921,27 @@ public class App extends Application {
     private VBox createMovieCard(Movie movie) {
         VBox card = new VBox(10);
         card.getStyleClass().add("movie-card");
-        card.setPrefWidth(180);
-        card.setMinWidth(180);
-        card.setMaxWidth(180);
+        card.prefWidthProperty().bind(cardWidth);
+        card.minWidthProperty().bind(cardWidth);
+        card.maxWidthProperty().bind(cardWidth);
 
         StackPane posterPane = new StackPane();
         posterPane.getStyleClass().add("poster-frame");
-        posterPane.setPrefWidth(180);
-        posterPane.setPrefHeight(270);
-        posterPane.setMinWidth(180);
-        posterPane.setMinHeight(270);
+        posterPane.prefWidthProperty().bind(cardWidth);
+        posterPane.minWidthProperty().bind(cardWidth);
+        posterPane.maxWidthProperty().bind(cardWidth);
+        posterPane.prefHeightProperty().bind(cardWidth.multiply(POSTER_ASPECT));
+        posterPane.minHeightProperty().bind(cardWidth.multiply(POSTER_ASPECT));
+        posterPane.maxHeightProperty().bind(cardWidth.multiply(POSTER_ASPECT));
 
-        ImageView posterImage = createPosterImageView(movie.imageUrl, 180, 270);
+        // The poster keeps its 2:3 shape, so the crop in createPosterImageView stays valid at any size
+        ImageView posterImage = createPosterImageView(movie.imageUrl, 2, 3);
+        posterImage.fitWidthProperty().bind(cardWidth);
+        posterImage.fitHeightProperty().bind(cardWidth.multiply(POSTER_ASPECT));
 
-        Rectangle clip = new Rectangle(180, 270);
+        Rectangle clip = new Rectangle();
+        clip.widthProperty().bind(cardWidth);
+        clip.heightProperty().bind(cardWidth.multiply(POSTER_ASPECT));
         clip.setArcWidth(16);
         clip.setArcHeight(16);
         posterPane.setClip(clip);
@@ -917,7 +953,8 @@ public class App extends Application {
 
         StackPane playOverlay = new StackPane();
         playOverlay.getStyleClass().add("play-overlay");
-        playOverlay.setMaxSize(180, 270);
+        playOverlay.maxWidthProperty().bind(cardWidth);
+        playOverlay.maxHeightProperty().bind(cardWidth.multiply(POSTER_ASPECT));
         playOverlay.setOpacity(0);
         playOverlay.setMouseTransparent(true);
 
@@ -929,7 +966,7 @@ public class App extends Application {
 
         Text movieTitle = new Text(movie.title);
         movieTitle.getStyleClass().add("movie-title");
-        movieTitle.setWrappingWidth(180);
+        movieTitle.wrappingWidthProperty().bind(cardWidth);
 
         Text movieGenre = new Text(movie.genre);
         movieGenre.getStyleClass().add("movie-genre");
