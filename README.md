@@ -5,10 +5,6 @@ Netflix-style catalog of movies and TV series, searchable titles, metadata from
 The Movie Database (TMDB), and in-app trailer playback streamed directly from
 YouTube. No video files are stored in the project.
 
-This project was developed as a group assignment for the Diploma in Multimedia
-with Software Engineering (BSc in Software Engineering and Multimedia),
-Faculty of Information and Communication Technology.
-
 ## Contents
 
 1. [Requirements](#requirements)
