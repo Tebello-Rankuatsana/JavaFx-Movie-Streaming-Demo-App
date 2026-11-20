@@ -197,4 +197,3 @@ adding poster files.
 | Lehakoe Panyane | UI Design |
 | Tebello Rankuatsana | Responsiveness, Custom Button creation, Application integration and Code Structure, Testing, Github and Documentation |
 
-Lecturers: Mr Thokoana and Mr Takalimane
