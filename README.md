@@ -5,6 +5,8 @@ Netflix-style catalog of movies and TV series, searchable titles, metadata from
 The Movie Database (TMDB), and in-app trailer playback streamed directly from
 YouTube. No video files are stored in the project.
 
+![image alt](https://github.com/Tebello-Rankuatsana/JavaFx-Movie-Streaming-Demo-App/blob/f983ba0ae69bde0568a07ff02e31bb8b45a86078/Screenshot%202026-11-21%20001155.png)
+
 ## Contents
 
 1. [Requirements](#requirements)
