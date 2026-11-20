@@ -194,6 +194,6 @@ adding poster files.
 | Tsiu Sehloho | Video Player and Tmdb Integration |
 | Katleho Serutla | Animations and Effects |
 | Rorisang Molapo | Custom Controls and Sound effects |
-| Lehakoe Panyane | UI Design |
+| Lehakoe Panyane | UI Design, Fixes through all assignment roles |
 | Tebello Rankuatsana | Responsiveness, Custom Button creation, Application integration and Code Structure, Testing, Github and Documentation |
 
